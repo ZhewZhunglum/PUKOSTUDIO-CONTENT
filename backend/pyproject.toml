@@ -1,0 +1,88 @@
+[project]
+name = "contentforge-backend"
+version = "0.1.0"
+description = "ContentForge backend — personal AI content production system"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "sqlalchemy>=2.0",
+  "greenlet>=3.0",
+  "alembic>=1.13",
+  "psycopg[binary]>=3.2",
+  "asyncpg>=0.30",
+  "pgvector>=0.3",
+  "pydantic>=2.9",
+  "pydantic-settings>=2.5",
+  "redis>=5.0",
+  "boto3>=1.35",
+  "httpx>=0.27",
+  "anthropic>=0.40",
+  "openai>=1.50",
+  "replicate>=0.30",
+  "together>=1.3",
+  "elevenlabs>=1.0",
+  "loguru>=0.7",
+  "python-frontmatter>=1.1",
+  "jinja2>=3.1",
+  "pillow>=10.4",
+  "python-multipart>=0.0.12",
+  "pyyaml>=6.0",
+  "yt-dlp>=2026.1",
+  "pyjwt>=2.8",
+  "bcrypt>=4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "pytest-httpx>=0.30",
+  "httpx>=0.27",
+  "ruff>=0.7",
+  "black>=24.10",
+]
+
+[tool.uv]
+dev-dependencies = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "httpx>=0.27",
+  "ruff>=0.7",
+  "black>=24.10",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S", "ANN"]
+ignore = [
+  "B008",    # FastAPI Depends() in default args — intentional pattern
+  "ANN101",  # self type annotation — removed in ruff
+  "ANN102",  # cls type annotation — removed in ruff
+  "S101",    # assert in tests is fine
+  "ANN201",  # return type on public methods — enforce gradually
+  "ANN202",  # return type on private methods
+  "ANN001",  # missing arg type — enforce gradually
+  "ANN002",  # missing *args type
+  "ANN003",  # missing **kwargs type
+  "ANN401",  # Any is appropriate in middleware, cache, and JSON contexts
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "ANN"]
+"app/main.py" = ["E402"]  # routers imported after app creation to avoid circular imports
+"app/core/config.py" = ["S105"]  # dev-default placeholder values, not real secrets
+"app/modules/asset/search.py" = ["S608"]  # f-string uses _SELECT_COLS constant, not user input

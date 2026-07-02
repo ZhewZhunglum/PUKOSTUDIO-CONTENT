@@ -1,0 +1,184 @@
+# Cap container log files — workers once accumulated 1.9GB each without rotation
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  postgres:
+    logging: *default-logging
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: contentforge
+      POSTGRES_USER: cf
+      POSTGRES_PASSWORD: dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cf -d contentforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    logging: *default-logging
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    logging: *default-logging
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio-init:
+    logging: *default-logging
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 minioadmin minioadmin
+        mc mb --ignore-existing local/contentforge-assets
+        mc anonymous set public local/contentforge-assets
+        echo 'MinIO bucket ready'
+
+  backend:
+    logging: *default-logging
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://cf:dev@postgres:5432/contentforge
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: contentforge-assets
+      S3_PUBLIC_DOMAIN: ${S3_PUBLIC_DOMAIN:-http://localhost:9000/contentforge-assets}
+      S3_PRESIGNED_ENDPOINT: ${S3_PRESIGNED_ENDPOINT:-http://localhost:9000}
+      # Reduce verbose SQLAlchemy + uvicorn debug I/O for better cloud performance
+      LOG_LEVEL: INFO
+    ports:
+      - "8371:8371"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/.venv          # preserve .venv from image; don't let host mount shadow it
+      - ./prompts:/prompts
+      - ./config:/config
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8371 --reload
+
+  worker:
+    logging: *default-logging
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://cf:dev@postgres:5432/contentforge
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: contentforge-assets
+      S3_PUBLIC_DOMAIN: ${S3_PUBLIC_DOMAIN:-http://localhost:9000/contentforge-assets}
+      S3_PRESIGNED_ENDPOINT: ${S3_PRESIGNED_ENDPOINT:-http://localhost:9000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/.venv          # preserve .venv from image
+      - ./prompts:/prompts
+      - ./config:/config
+    command: python -m app.workers.main
+    deploy:
+      replicas: 2
+
+  frontend:
+    logging: *default-logging
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: dev          # use the dev stage so pnpm/dev-deps are available
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      # INTERNAL_API_URL: used by Next.js SSR rewrite rules inside the container.
+      # Must use Docker service name, NOT localhost.
+      # NEXT_PUBLIC_API_URL is intentionally left unset so the browser uses
+      # relative URLs (/api/...) which nginx proxies to the backend.
+      INTERNAL_API_URL: http://backend:8371
+      NEXT_PUBLIC_UGC_URL: ${NEXT_PUBLIC_UGC_URL:-}
+      NEXT_PUBLIC_STORAGE_DOMAIN: ${NEXT_PUBLIC_STORAGE_DOMAIN:-localhost}
+    ports:
+      - "3847:3847"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # preserve node_modules from image layer
+      - /app/.next         # persist Next.js build cache across restarts
+    command: pnpm dev
+    networks:
+      - default
+      - internal
+
+  nginx:
+    logging: *default-logging
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+      - minio
+
+networks:
+  internal:
+    name: contentforge_internal
+    external: true
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

@@ -1,0 +1,86 @@
+# ContentForge AI Model Configuration
+# Capability → quality_level → (provider, model)
+# quality_level: default | fast | premium | bulk_local
+
+text_gen:
+  default:
+    provider: anthropic
+    model: claude-sonnet-4-7
+  fast:
+    provider: anthropic
+    model: claude-haiku-4-5-20251001
+  premium:
+    provider: anthropic
+    model: claude-opus-4-7
+  long_context:
+    provider: anthropic
+    model: claude-sonnet-4-7
+  bulk_local:
+    provider: together
+    model: meta-llama/Llama-3.3-70B-Instruct-Turbo
+
+vision:
+  default:
+    provider: anthropic
+    model: claude-sonnet-4-7
+  bulk_local:
+    provider: together
+    model: Qwen/Qwen2.5-VL-72B-Instruct
+
+image_gen:
+  default:
+    provider: openai
+    model: gpt-image-2
+  fallback:
+    provider: openai
+    model: gpt-image-1.5
+  artistic:
+    provider: replicate
+    model: black-forest-labs/flux-1.1-pro-ultra
+  high_res:
+    provider: replicate
+    model: black-forest-labs/flux-1.1-pro-ultra
+
+video_gen:
+  default:
+    provider: replicate
+    model: bytedance/seedance-1.5-pro
+  fast:
+    provider: replicate
+    model: bytedance/seedance-1.5-pro
+  premium:
+    provider: openai
+    model: sora-2
+  premium_cinematic:
+    provider: openai
+    model: sora-2-pro
+  premium_with_audio:
+    provider: google
+    model: veo-3.1-generate-001
+  edit:
+    provider: replicate
+    model: bytedance/seedance-1.5-pro
+
+tts:
+  default:
+    provider: openai
+    model: tts-1-hd
+  premium:
+    provider: openai
+    model: tts-1-hd
+
+asr:
+  default:
+    provider: openai
+    model: whisper-1
+
+embedding:
+  text:
+    provider: openai
+    model: text-embedding-3-large
+  text_local:
+    provider: together
+    model: togethercomputer/m2-bert-80M-8k-retrieval
+  visual:
+    provider: replicate
+    model: andreasjansson/clip-features

@@ -1,0 +1,153 @@
+# ── ContentForge Production ───────────────────────────────────────────────────
+# Services: nginx · redis · minio · backend · worker · frontend
+# External: Neon (PostgreSQL)
+# Self-hosted: Redis + MinIO (object storage)
+#
+# Usage:
+#   cp .env.prod.example .env.prod  &&  nano .env.prod
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+services:
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # ── MinIO (S3-compatible object storage) ─────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"   # S3 API — browser downloads assets directly here
+      # 9001 (admin console) is intentionally NOT exposed externally
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  # ── MinIO bucket init (runs once, then exits) ────────────────────────────────
+  minio-init:
+    image: minio/mc:latest
+    restart: no
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
+        mc mb --ignore-existing local/contentforge-assets
+        mc anonymous set public local/contentforge-assets
+        echo 'MinIO bucket ready'
+    networks:
+      - internal
+
+  # ── FastAPI backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: contentforge-assets
+      S3_PUBLIC_DOMAIN: http://${SERVER_IP}:9000/contentforge-assets
+      S3_PRESIGNED_ENDPOINT: http://${SERVER_IP}:9000
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # ── Async task worker ────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: contentforge-assets
+      S3_PUBLIC_DOMAIN: http://${SERVER_IP}:9000/contentforge-assets
+      S3_PRESIGNED_ENDPOINT: http://${SERVER_IP}:9000
+    command: python -m app.workers.main
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # ── Next.js frontend (production build) ─────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_STORAGE_DOMAIN: ${SERVER_IP}:9000
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    networks:
+      - internal
+
+  # ── nginx reverse proxy ───────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - internal
+
+volumes:
+  redisdata:
+  miniodata:
+
+networks:
+  internal:
+    driver: bridge

@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ══ Surfaces — cool indigo undertone ══ */
+    --surface-0: oklch(8.5% 0.020 278);
+    --surface-1: oklch(11.5% 0.018 278);
+    --surface-2: oklch(15% 0.016 278);
+    --surface-3: oklch(19% 0.014 278);
+    --surface-4: oklch(24% 0.012 278);
+
+    /* ══ Ink (text) ══ */
+    --ink-hi:    oklch(95% 0 0);
+    --ink:       oklch(78% 0 0);
+    --ink-mid:   oklch(58% 0 0);
+    --ink-lo:    oklch(38% 0 0);
+    --ink-faint: oklch(24% 0 0);
+
+    /* Legacy aliases (keep for existing Tailwind usage) */
+    --text-hi:    var(--ink-hi);
+    --text-mid:   var(--ink-mid);
+    --text-lo:    var(--ink-lo);
+    --text-faint: var(--ink-faint);
+
+    /* ══ Accent — electric violet ══ */
+    --accent:      oklch(70% 0.20 295);
+    --accent-2:    oklch(75% 0.18 295);
+    --accent-soft: oklch(70% 0.20 295 / 0.15);
+    --accent-line: oklch(70% 0.20 295 / 0.35);
+
+    /* ══ Semantic ══ */
+    --good: oklch(75% 0.18 155);
+    --warn: oklch(82% 0.16 75);
+    --bad:  oklch(68% 0.22 22);
+    --info: oklch(72% 0.15 235);
+
+    /* ══ Borders ══ */
+    --line:    oklch(100% 0 0 / 0.06);
+    --line-hi: oklch(100% 0 0 / 0.12);
+    --line-lo: oklch(100% 0 0 / 0.04);
+
+    /* ══ Sidebar ══ */
+    --sidebar-bg: oklch(7.5% 0.022 278);
+    --sidebar-w:  232px;
+
+    /* ══ shadcn/ui HSL adapters ══ */
+    --background:             240 33% 7.5%;
+    --foreground:             0 0% 92%;
+    --card:                   240 25% 10.5%;
+    --card-foreground:        0 0% 92%;
+    --popover:                240 25% 10.5%;
+    --popover-foreground:     0 0% 92%;
+    --primary:                263 80% 67%;
+    --primary-foreground:     0 0% 98%;
+    --secondary:              240 20% 16%;
+    --secondary-foreground:   0 0% 92%;
+    --muted:                  240 20% 14%;
+    --muted-foreground:       240 5% 56%;
+    --accent-hsl:             240 20% 15%;
+    --accent-foreground:      0 0% 92%;
+    --destructive:            0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border:                 240 18% 16%;
+    --input:                  240 18% 16%;
+    --ring:                   263 80% 67%;
+    --radius:                 0.75rem;
+    --sidebar:                240 30% 8.5%;
+    --sidebar-foreground:     0 0% 92%;
+    --sidebar-border:         240 18% 13%;
+    --sidebar-accent:         240 20% 13%;
+
+    /* ══ Typography ══ */
+    --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+    --font-ui:      "Inter", system-ui, sans-serif;
+    --font-mono:    "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+    --font-cn:      "Inter", "PingFang SC", "Noto Sans SC", sans-serif;
+
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+  }
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body, #__next { height: 100%; }
+
+  body {
+    @apply bg-background text-foreground;
+    background: var(--surface-0);
+    color: var(--ink);
+    font-family: var(--font-cn);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "ss01" 1, "cv01" 1;
+    overflow: hidden;
+  }
+
+  ::selection {
+    background-color: var(--accent-soft);
+    color: var(--ink-hi);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent-line);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(100% 0 0 / 0.06);
+    border-radius: 999px;
+    border: 2px solid var(--surface-0);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(100% 0 0 / 0.12); }
+}
+
+/* ── Utility classes ──────────────────────────────────── */
+@layer utilities {
+  .font-display { font-family: var(--font-display); letter-spacing: -0.025em; }
+  .font-ui      { font-family: var(--font-ui); }
+  .font-mono    { font-family: var(--font-mono) !important; }
+  .font-cn      { font-family: var(--font-cn); }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-lo);
+  }
+
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 4px;
+    background: oklch(100% 0 0 / 0.06);
+    border: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-mid);
+    line-height: 1;
+  }
+}
+
+/* ── Animations ───────────────────────────────────────── */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); }
+  50%       { box-shadow: 0 0 16px 0 var(--accent-soft); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(100% 0 0 / 0.06) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.4s linear infinite;
+}
+
+/* ── Range inputs ─────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: oklch(100% 0 0 / 0.08);
+  border-radius: 999px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+}
