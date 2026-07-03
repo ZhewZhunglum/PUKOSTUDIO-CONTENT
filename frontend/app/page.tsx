@@ -1,315 +1,121 @@
 import Link from "next/link";
-import { Library, Users2, ArrowRight, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart2,
+  Clapperboard,
+  FolderOpen,
+  Layers3,
+  Library,
+  Send,
+  Settings,
+  Sparkles,
+  Upload,
+  Wand2,
+} from "lucide-react";
 
-// ── Panel ──────────────────────────────────────────────────────
+const PRIMARY = [
+  { href: "/upload", label: "上传素材", sub: "Import", icon: Upload, hue: 155 },
+  { href: "/assets", label: "素材库", sub: "Library", icon: Library, hue: 295 },
+  { href: "/tags", label: "标签体系", sub: "Taxonomy", icon: Layers3, hue: 210 },
+  { href: "/ai/one-click", label: "一键成片", sub: "Forge", icon: Wand2, hue: 35 },
+];
 
-interface PanelProps {
-  href: string;
-  external?: boolean;
-  label: string;
-  sub: string;
-  desc: string;
-  tags: string[];
-  icon: React.ReactNode;
-  accentHue: number;
-}
-
-function Panel({ href, external, label, sub, desc, tags, icon, accentHue }: PanelProps) {
-  const accent = `oklch(72% 0.20 ${accentHue})`;
-  const accentSoft = `oklch(72% 0.20 ${accentHue} / 0.12)`;
-  const accentLine = `oklch(72% 0.20 ${accentHue} / 0.28)`;
-  const grad = `linear-gradient(155deg, oklch(16% 0.04 ${accentHue}) 0%, oklch(11% 0.015 ${accentHue + 40}) 100%)`;
-
-  const inner = (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 0,
-        padding: "60px 48px",
-        background: grad,
-        position: "relative",
-        overflow: "hidden",
-        cursor: "pointer",
-        transition: "background 0.3s",
-      }}
-      className="portal-panel"
-    >
-      {/* Atmospheric glow */}
-      <div
-        style={{
-          position: "absolute",
-          top: "30%", left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: 480, height: 480,
-          borderRadius: "50%",
-          background: `radial-gradient(circle, oklch(72% 0.20 ${accentHue} / 0.08) 0%, transparent 65%)`,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Corner watermark */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: -20, right: -10,
-          fontFamily: "var(--font-display)",
-          fontSize: 200,
-          fontWeight: 700,
-          fontStyle: "italic",
-          letterSpacing: "-0.06em",
-          color: `oklch(72% 0.20 ${accentHue} / 0.04)`,
-          lineHeight: 1,
-          userSelect: "none",
-          pointerEvents: "none",
-        }}
-      >
-        {accentHue === 295 ? "CF" : "UG"}
-      </div>
-
-      {/* Icon */}
-      <div
-        style={{
-          width: 72, height: 72,
-          borderRadius: 20,
-          background: accentSoft,
-          border: `1px solid ${accentLine}`,
-          color: accent,
-          display: "grid", placeItems: "center",
-          marginBottom: 32,
-          position: "relative", zIndex: 1,
-          transition: "transform 0.25s, box-shadow 0.25s",
-        }}
-        className="portal-icon"
-      >
-        {icon}
-      </div>
-
-      {/* Eyebrow */}
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          letterSpacing: "0.20em",
-          color: accent,
-          marginBottom: 10,
-          position: "relative", zIndex: 1,
-        }}
-      >
-        {sub}
-      </div>
-
-      {/* Title */}
-      <h2
-        style={{
-          margin: 0,
-          fontFamily: "var(--font-display)",
-          fontSize: 48,
-          fontWeight: 500,
-          letterSpacing: "-0.035em",
-          lineHeight: 1,
-          color: "oklch(96% 0 0)",
-          marginBottom: 16,
-          position: "relative", zIndex: 1,
-        }}
-      >
-        {label}
-      </h2>
-
-      {/* Description */}
-      <p
-        style={{
-          margin: 0,
-          fontSize: 13,
-          color: "oklch(65% 0 0)",
-          lineHeight: 1.7,
-          textAlign: "center",
-          maxWidth: 280,
-          marginBottom: 32,
-          position: "relative", zIndex: 1,
-        }}
-      >
-        {desc}
-      </p>
-
-      {/* Tags */}
-      <div
-        style={{
-          display: "flex", gap: 8, flexWrap: "wrap",
-          justifyContent: "center",
-          marginBottom: 40,
-          position: "relative", zIndex: 1,
-        }}
-      >
-        {tags.map((tag) => (
-          <span
-            key={tag}
-            style={{
-              fontSize: 10.5,
-              padding: "4px 10px",
-              borderRadius: 999,
-              background: accentSoft,
-              border: `1px solid ${accentLine}`,
-              color: accent,
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.04em",
-            }}
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-
-      {/* CTA */}
-      <div
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 8,
-          padding: "12px 24px",
-          borderRadius: 12,
-          background: accentSoft,
-          border: `1px solid ${accentLine}`,
-          color: accent,
-          fontSize: 13, fontWeight: 500,
-          position: "relative", zIndex: 1,
-          transition: "background 0.2s",
-        }}
-      >
-        进入 {label} <ArrowRight size={14} />
-      </div>
-    </div>
-  );
-
-  const linkStyle: React.CSSProperties = {
-    flex: 1,
-    display: "flex",
-    textDecoration: "none",
-    minWidth: 0,
-  };
-
-  if (external) {
-    return (
-      <a href={href} style={linkStyle} target="_self">
-        {inner}
-      </a>
-    );
-  }
-  return (
-    <Link href={href} style={linkStyle}>
-      {inner}
-    </Link>
-  );
-}
-
-// ── Portal ─────────────────────────────────────────────────────
+const SECONDARY = [
+  { href: "/dashboard", label: "仪表盘", icon: BarChart2 },
+  { href: "/collections", label: "集合", icon: FolderOpen },
+  { href: "/productions", label: "成片库", icon: Clapperboard },
+  { href: "/blogger-manager", label: "红人系统", icon: Send },
+  { href: "/settings", label: "设置", icon: Settings },
+];
 
 export default function Portal() {
   return (
-    <>
-      <style>{`
-        .portal-panel:hover .portal-icon {
-          transform: scale(1.08);
-          box-shadow: 0 0 32px var(--panel-accent-soft, transparent);
-        }
-        .portal-panel:hover {
-          filter: brightness(1.06);
-        }
-      `}</style>
-
-      <div
-        style={{
-          display: "flex",
-          height: "100vh",
-          width: "100vw",
-          background: "var(--surface-0)",
-          overflow: "hidden",
-          position: "relative",
-        }}
-      >
-        {/* Top-left wordmark */}
-        <div
-          style={{
-            position: "absolute",
-            top: 20, left: 28,
-            zIndex: 10,
-            display: "flex", alignItems: "center", gap: 8,
-          }}
-        >
-          <div
-            style={{
-              width: 28, height: 28, borderRadius: 8,
-              background: "var(--accent)",
-              color: "oklch(15% 0 0)",
-              fontFamily: "var(--font-display)",
-              fontSize: 13, fontWeight: 700, letterSpacing: "-0.04em",
-              display: "grid", placeItems: "center",
-            }}
-          >
-            CF
+    <main className="min-h-screen bg-[var(--surface-0)] text-white">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-6">
+        <header className="flex h-14 items-center justify-between border-b border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--accent)] font-display text-sm font-bold text-black">
+              CF
+            </div>
+            <div>
+              <h1 className="font-display text-base font-semibold tracking-normal text-white/92">ContentForge</h1>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">Studio Operations</p>
+            </div>
           </div>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10, letterSpacing: "0.14em",
-              color: "var(--ink-lo)",
-              textTransform: "uppercase",
-            }}
+          <Link
+            href="/dashboard"
+            className="flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.045] px-3 text-sm text-white/62 transition-colors hover:border-white/16 hover:text-white"
           >
-            Studio Suite
-          </span>
-        </div>
+            工作台
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </header>
 
-        {/* Hint text at bottom */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 20, left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 10,
-            fontFamily: "var(--font-mono)",
-            fontSize: 10, letterSpacing: "0.10em",
-            color: "oklch(40% 0 0)",
-            display: "flex", alignItems: "center", gap: 6,
-          }}
-        >
-          <Sparkles size={10} />
-          选择一个系统进入
-        </div>
+        <section className="grid flex-1 gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="flex min-w-0 flex-col justify-center">
+            <div className="mb-8 max-w-2xl">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-300/18 bg-violet-300/8 px-3 py-1 text-xs text-violet-100/80">
+                <Sparkles className="h-3.5 w-3.5" />
+                素材到成片的生产台
+              </div>
+              <h2 className="font-display text-5xl font-semibold leading-[1.05] tracking-normal text-white/95">
+                先整理素材，再生产内容。
+              </h2>
+            </div>
 
-        {/* Left panel — ContentForge */}
-        <Panel
-          href="/assets"
-          label="素材库"
-          sub="CONTENTFORGE"
-          desc="AI 内容生产系统。管理素材、生成视频，让每一帧在十年后仍可被找到。"
-          tags={["素材管理", "AI 生成", "一键成片", "向量搜索"]}
-          icon={<Library size={32} />}
-          accentHue={295}
-        />
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {PRIMARY.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="group min-h-44 rounded-xl border border-white/[0.07] bg-white/[0.035] p-4 transition-colors hover:border-white/14 hover:bg-white/[0.055]"
+                  >
+                    <div
+                      className="mb-8 grid h-11 w-11 place-items-center rounded-lg border"
+                      style={{
+                        color: `oklch(76% 0.18 ${item.hue})`,
+                        background: `oklch(76% 0.18 ${item.hue} / 0.10)`,
+                        borderColor: `oklch(76% 0.18 ${item.hue} / 0.22)`,
+                      }}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/30">{item.sub}</p>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <h3 className="text-lg font-semibold text-white/88">{item.label}</h3>
+                      <ArrowRight className="h-4 w-4 text-white/22 transition-transform group-hover:translate-x-1 group-hover:text-white/55" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
 
-        {/* Divider */}
-        <div
-          style={{
-            width: 1,
-            background: "linear-gradient(to bottom, transparent 0%, oklch(30% 0 0) 20%, oklch(30% 0 0) 80%, transparent 100%)",
-            flexShrink: 0,
-            position: "relative", zIndex: 1,
-          }}
-        />
-
-        {/* Right panel — UGC Outreach */}
-        <Panel
-          href="/blogger-manager"
-          label="红人系统"
-          sub="UGC OUTREACH"
-          desc="达人外联建联工具。管理红人、发送邮件、追踪数据，智能化闭环外联流程。"
-          tags={["达人管理", "邮件外联", "AI 收件箱", "数据看板"]}
-          icon={<Users2 size={32} />}
-          accentHue={155}
-        />
+          <aside className="flex flex-col justify-center gap-3">
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.035] p-4">
+              <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-white/30">Next Areas</p>
+              <div className="space-y-1">
+                {SECONDARY.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="flex h-10 items-center gap-3 rounded-lg px-2 text-sm text-white/58 transition-colors hover:bg-white/[0.055] hover:text-white/82"
+                    >
+                      <Icon className="h-4 w-4 text-white/32" />
+                      <span className="flex-1">{item.label}</span>
+                      <ArrowRight className="h-3.5 w-3.5 text-white/20" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+        </section>
       </div>
-    </>
+    </main>
   );
 }

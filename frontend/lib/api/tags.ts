@@ -26,6 +26,7 @@ export async function listTags(params?: {
 export async function createTag(data: {
   name: string;
   category?: string;
+  parent_id?: number | null;
   color?: string;
   description?: string;
 }): Promise<TagOut> {

@@ -33,38 +33,38 @@ interface NavGroup {
 
 const NAV: NavGroup[] = [
   {
-    group: "ARCHIVE",
+    group: "WORKFLOW",
     items: [
       { href: "/dashboard",   icon: LayoutDashboard, label: "仪表盘",  sub: "Dashboard" },
-      { href: "/assets",      icon: Library,       label: "素材库",   sub: "Library",     count: undefined },
-      { href: "/productions", icon: Film,          label: "成片库",   sub: "Productions" },
       { href: "/upload",      icon: Upload,        label: "上传素材", sub: "Upload" },
-      { href: "/tags",        icon: Tag,           label: "标签",     sub: "Tags" },
+      { href: "/assets",      icon: Library,       label: "素材库",   sub: "Library",     count: undefined },
+      { href: "/tags",        icon: Tag,           label: "标签体系", sub: "Taxonomy" },
       { href: "/collections", icon: FolderOpen,    label: "集合",     sub: "Collections" },
     ],
   },
   {
-    group: "STUDIO",
+    group: "PRODUCTION",
     items: [
-      { href: "/projects", icon: Briefcase,   label: "项目",   sub: "Projects" },
-      { href: "/skus",     icon: ShoppingBag, label: "商品",   sub: "SKUs" },
-      { href: "/brands",   icon: Building2,   label: "品牌",   sub: "Brands" },
-    ],
-  },
-  {
-    group: "FORGE — AI",
-    items: [
+      { href: "/ai/one-click", icon: Zap,        label: "一键成片", live: true },
+      { href: "/productions",  icon: Film,       label: "成片库",   sub: "Productions" },
+      { href: "/ai/video",     icon: Video,      label: "AI 视频",  pill: "Seedance" },
       { href: "/ai/script",    icon: FileText,   label: "AI 脚本",  pill: "Claude" },
       { href: "/ai/image",     icon: Image,      label: "AI 图片",  pill: "gpt-image-1" },
-      { href: "/ai/video",     icon: Video,      label: "AI 视频",  pill: "Seedance" },
-      { href: "/ai/one-click", icon: Zap,        label: "一键成片", live: true },
       { href: "/ai/analyzer",  icon: TrendingUp, label: "爆款解析" },
     ],
   },
   {
-    group: "OTHER",
+    group: "OPERATIONS",
     items: [
-      { href: "/templates",       icon: LayoutTemplate, label: "模板中心" },
+      { href: "/projects",  icon: Briefcase,      label: "项目",     sub: "Projects" },
+      { href: "/brands",    icon: Building2,      label: "品牌",     sub: "Brands" },
+      { href: "/skus",      icon: ShoppingBag,    label: "商品",     sub: "SKUs" },
+      { href: "/templates", icon: LayoutTemplate, label: "模板中心" },
+    ],
+  },
+  {
+    group: "SYSTEM",
+    items: [
       { href: "/stats",           icon: BarChart2,      label: "数据看板" },
       { href: "/blogger-manager", icon: Users2,         label: "红人管理" },
       { href: "/settings",        icon: Settings,       label: "设置" },

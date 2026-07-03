@@ -432,12 +432,12 @@ export function AssetCard({ asset, selected, onToggleSelect, selectionActive, on
           </span>
         )}
 
-        {/* Hover overlay: name + tags */}
+        {/* Name + tags */}
         <div
-          className="absolute inset-x-0 bottom-0 z-20 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+          className="absolute inset-x-0 bottom-0 z-20 opacity-100 transition-opacity duration-200"
           style={{
-            background: "linear-gradient(to top, oklch(0% 0 0 / 0.85) 0%, oklch(0% 0 0 / 0.4) 50%, transparent 100%)",
-            padding: "32px 10px 10px",
+            background: "linear-gradient(to top, oklch(0% 0 0 / 0.84) 0%, oklch(0% 0 0 / 0.46) 58%, transparent 100%)",
+            padding: "38px 10px 10px",
           }}
         >
           <p
@@ -461,10 +461,11 @@ export function AssetCard({ asset, selected, onToggleSelect, selectionActive, on
                   key={tag}
                   style={{
                     fontSize: 9,
-                    padding: "1px 5px",
-                    borderRadius: 3,
-                    background: "oklch(100% 0 0 / 0.15)",
-                    color: "oklch(90% 0 0)",
+                    padding: "2px 6px",
+                    borderRadius: 999,
+                    background: "oklch(72% 0.20 295 / 0.20)",
+                    border: "1px solid oklch(72% 0.20 295 / 0.22)",
+                    color: "oklch(88% 0.08 295)",
                     backdropFilter: "blur(4px)",
                   }}
                 >

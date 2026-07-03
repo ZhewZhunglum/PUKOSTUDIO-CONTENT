@@ -4,15 +4,16 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Download, Star, Heart, Tag, Image as ImageIcon,
+  ArrowLeft, Download, Star, Heart, Image as ImageIcon,
   Film, Volume2, FileText, Loader2, Copy, Check, Sparkles,
-  Calendar, HardDrive, Clock, Eye, Plus, X, RefreshCw,
+  Calendar, HardDrive, Clock, Eye, RefreshCw,
   GitBranch, Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { api } from "../../../lib/api";
 import { SurfaceCard } from "../../../components/ui/SurfaceCard";
 import { StatusPill } from "../../../components/ui/StatusPill";
+import { AssetTagWorkbench } from "../../../components/assets/AssetTagWorkbench";
 
 // Backend stores {name, source, confidence} — not {label, score}
 interface AITag {
@@ -114,8 +115,6 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [tagInput, setTagInput] = useState("");
-  const [tagPending, setTagPending] = useState(false);
   const [retagging, setRetagging] = useState(false);
 
   const isProcessing = (status: number) => status === 1;
@@ -144,27 +143,6 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
     mutationFn: (rating: number) => api.patch<AssetDetail>(`/api/assets/${assetId}`, { rating }).then(r => r.data),
     onSuccess: (updated) => qc.setQueryData(["asset", assetId], updated),
   });
-
-  async function addTag(e: React.FormEvent) {
-    e.preventDefault();
-    const tag = tagInput.trim();
-    if (!tag || tagPending) return;
-    setTagPending(true);
-    try {
-      const { data } = await api.patch<AssetDetail>(`/api/assets/${assetId}`, { user_tags_add: [tag] });
-      qc.setQueryData(["asset", assetId], data);
-      setTagInput("");
-    } finally {
-      setTagPending(false);
-    }
-  }
-
-  async function removeTag(tag: string) {
-    try {
-      const { data } = await api.patch<AssetDetail>(`/api/assets/${assetId}`, { user_tags_remove: [tag] });
-      qc.setQueryData(["asset", assetId], data);
-    } catch { /* ignore */ }
-  }
 
   async function triggerRetag() {
     setRetagging(true);
@@ -390,6 +368,12 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
             </div>
           </SurfaceCard>
 
+          <AssetTagWorkbench
+            assetId={asset.id}
+            selectedTags={asset.user_tags}
+            onAssetUpdated={(updated) => qc.setQueryData(["asset", assetId], updated as AssetDetail)}
+          />
+
           {/* Metadata */}
           <SurfaceCard>
             <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-white/30">素材信息</p>
@@ -494,50 +478,6 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
             ) : (
               <p className="text-xs text-white/20">暂无派生、组成或使用关系。</p>
             )}
-          </SurfaceCard>
-
-          {/* User tags — editable */}
-          <SurfaceCard>
-            <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-white/30">
-              <Tag className="h-3 w-3" />
-              手动标签
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {asset.user_tags.map((t) => (
-                <span
-                  key={t}
-                  className="group flex items-center gap-1 rounded-full bg-white/[0.06] px-2.5 py-1 text-xs text-white/60"
-                >
-                  {t}
-                  <button
-                    onClick={() => removeTag(t)}
-                    className="text-white/20 hover:text-red-300 transition-colors"
-                    aria-label={`删除标签 ${t}`}
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </span>
-              ))}
-              {asset.user_tags.length === 0 && (
-                <span className="text-xs text-white/20">暂无手动标签</span>
-              )}
-            </div>
-            <form onSubmit={addTag} className="mt-3 flex gap-2">
-              <input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="添加标签…"
-                className="flex-1 rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-xs text-white/70 placeholder:text-white/25 outline-none focus:ring-1 focus:ring-violet-500/50"
-              />
-              <button
-                type="submit"
-                disabled={!tagInput.trim() || tagPending}
-                className="flex items-center gap-1 rounded-lg bg-violet-500/20 px-2.5 py-1.5 text-xs text-violet-300 hover:bg-violet-500/30 disabled:opacity-40 transition-colors"
-              >
-                {tagPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                添加
-              </button>
-            </form>
           </SurfaceCard>
 
           {/* Storage key */}
