@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.modules.tag import service
 from app.modules.tag.schemas import (
     AddTagsRequest,
+    TagCategoryRenameRequest,
     TagCreate,
     TagMergeRequest,
     TagOut,
@@ -43,6 +44,13 @@ async def merge_tags(req: TagMergeRequest, db: DbSession) -> TagOut:
     tag = await service.merge_tags(db, req.source_ids, req.target_name)
     await db.commit()
     return TagOut.model_validate(tag)
+
+
+@router.patch("/categories/rename")
+async def rename_tag_category(req: TagCategoryRenameRequest, db: DbSession) -> dict[str, int | str]:
+    updated = await service.rename_category(db, req.old_name, req.new_name)
+    await db.commit()
+    return {"old_name": req.old_name, "new_name": req.new_name, "updated": updated}
 
 
 @router.get("/asset/{asset_id}", response_model=list[TagOut])

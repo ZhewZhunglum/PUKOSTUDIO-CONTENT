@@ -76,6 +76,23 @@ async def update_tag(db: AsyncSession, tag_id: int, data: TagUpdate) -> Tag | No
     return tag
 
 
+async def rename_category(db: AsyncSession, old_name: str, new_name: str) -> int:
+    old = old_name.strip()
+    new = new_name.strip()
+    if not old or not new or old == new:
+        return 0
+
+    old_value = None if old == "未分类" else old
+    new_value = None if new == "未分类" else new
+    result = await db.execute(
+        update(Tag)
+        .where(Tag.category.is_(None) if old_value is None else Tag.category == old_value)
+        .values(category=new_value)
+    )
+    await db.flush()
+    return result.rowcount or 0
+
+
 async def delete_tag(db: AsyncSession, tag_id: int) -> bool:
     tag = await get_tag(db, tag_id)
     if not tag or tag.is_system:

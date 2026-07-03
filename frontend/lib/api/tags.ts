@@ -45,3 +45,11 @@ export async function mergeTags(sourceIds: number[], targetName: string): Promis
   });
   return res.data;
 }
+
+export async function renameTagFamily(oldName: string, newName: string): Promise<{ updated: number }> {
+  const res = await api.patch<{ updated: number }>("/api/tags/categories/rename", {
+    old_name: oldName,
+    new_name: newName,
+  });
+  return res.data;
+}

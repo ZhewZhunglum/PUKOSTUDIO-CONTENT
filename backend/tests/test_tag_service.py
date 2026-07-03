@@ -57,3 +57,21 @@ async def test_asset_tag_routes_are_not_shadowed_by_tag_id_route(client):
     assert resp.json() == []
     mock_get_tags.assert_awaited_once()
     assert mock_get_tags.call_args.args[1] == 123
+
+
+async def test_tag_category_rename_route_delegates_to_service(client):
+    with patch(
+        "app.modules.tag.router.service.rename_category",
+        new_callable=AsyncMock,
+        return_value=2,
+    ) as mock_rename:
+        resp = await client.patch(
+            "/api/tags/categories/rename",
+            json={"old_name": "场景", "new_name": "素材场景"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json() == {"old_name": "场景", "new_name": "素材场景", "updated": 2}
+    mock_rename.assert_awaited_once()
+    assert mock_rename.call_args.args[1] == "场景"
+    assert mock_rename.call_args.args[2] == "素材场景"

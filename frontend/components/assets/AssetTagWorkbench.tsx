@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import type React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronRight, Loader2, Plus, Search, Tag, X } from "lucide-react";
+import { Check, ChevronRight, Loader2, Pencil, Plus, Search, Tag, X } from "lucide-react";
 import { api } from "../../lib/api";
-import { createTag, listTags, type TagOut } from "../../lib/api/tags";
+import { createTag, listTags, renameTagFamily, type TagOut } from "../../lib/api/tags";
 import { cn } from "../../lib/utils";
 import { DEFAULT_TAG_FAMILIES, useTagFamilies } from "../../hooks/useTagFamilies";
 
@@ -22,7 +22,9 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
   const [search, setSearch] = useState("");
   const [newName, setNewName] = useState("");
   const [newFamilyName, setNewFamilyName] = useState("");
-  const [createMode, setCreateMode] = useState<"familyRoot" | "root" | "child">("root");
+  const [familyDraft, setFamilyDraft] = useState("");
+  const [isRenamingFamily, setIsRenamingFamily] = useState(false);
+  const [createMode, setCreateMode] = useState<"root" | "child">("root");
 
   const selected = useMemo(() => new Set(selectedTags.map(normalizeTag)), [selectedTags]);
   const { data: tags = [], isLoading } = useQuery({
@@ -30,7 +32,16 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
     queryFn: () => listTags({ limit: 500 }),
   });
 
-  const { families, addFamily } = useTagFamilies(tags);
+  const { families, addFamily, renameFamily } = useTagFamilies(tags);
+
+  const familyCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    tags.forEach((tag) => {
+      const family = familyFor(tag);
+      counts.set(family, (counts.get(family) ?? 0) + 1);
+    });
+    return counts;
+  }, [tags]);
 
   const rootTags = useMemo(
     () =>
@@ -87,6 +98,31 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
     },
   });
 
+  const renameFamilyMutation = useMutation({
+    mutationFn: ({ oldName, newName }: { oldName: string; newName: string }) =>
+      renameTagFamily(oldName, newName),
+    onSuccess: (_, variables) => {
+      const renamed = renameFamily(variables.oldName, variables.newName);
+      if (renamed) {
+        setActiveFamily(renamed);
+        setActiveParentId(null);
+      }
+      setFamilyDraft("");
+      setIsRenamingFamily(false);
+      qc.invalidateQueries({ queryKey: ["tags"] });
+    },
+  });
+
+  function submitFamilyRename() {
+    const newName = familyDraft.trim();
+    if (!newName || newName === activeFamily || renameFamilyMutation.isPending) {
+      setFamilyDraft("");
+      setIsRenamingFamily(false);
+      return;
+    }
+    renameFamilyMutation.mutate({ oldName: activeFamily, newName });
+  }
+
   function toggleTag(name: string) {
     const normalized = normalizeTag(name);
     if (selected.has(normalized)) {
@@ -96,7 +132,7 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
     }
   }
 
-  const busy = addMutation.isPending || removeMutation.isPending || createMutation.isPending;
+  const busy = addMutation.isPending || removeMutation.isPending || createMutation.isPending || renameFamilyMutation.isPending;
 
   return (
     <section className="rounded-2xl border border-violet-400/20 bg-violet-400/[0.045] p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
@@ -139,13 +175,28 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
       </div>
 
       <div className="grid gap-2 md:grid-cols-3">
-        <TagColumn title="一级主题">
+        <TagColumn
+          title="一级主题"
+          action={
+            <button
+              type="button"
+              aria-label={`重命名一级主题 ${activeFamily}`}
+              onClick={() => {
+                setFamilyDraft(activeFamily);
+                setIsRenamingFamily(true);
+              }}
+              className="grid h-6 w-6 place-items-center rounded-md bg-white/[0.055] text-white/42 transition-colors hover:bg-white/10 hover:text-white/72"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          }
+        >
           {families.map((family) => (
             <ColumnButton
               key={family}
               active={family === activeFamily}
               label={family}
-              count={tags.filter((tag) => familyFor(tag) === family).length}
+              count={familyCounts.get(family) ?? 0}
               onClick={() => {
                 setActiveFamily(family);
                 setActiveParentId(null);
@@ -218,6 +269,49 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
         </button>
       </form>
 
+      {isRenamingFamily && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitFamilyRename();
+          }}
+          className="mt-2 flex gap-2 rounded-xl border border-violet-300/14 bg-violet-300/[0.055] p-2"
+        >
+          <input
+            autoFocus
+            value={familyDraft}
+            onChange={(event) => setFamilyDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setFamilyDraft("");
+                setIsRenamingFamily(false);
+              }
+            }}
+            placeholder={`重命名「${activeFamily}」`}
+            className="h-8 min-w-0 flex-1 rounded-lg border border-white/8 bg-black/18 px-3 text-xs text-white/72 outline-none placeholder:text-white/25 focus:border-violet-300/30"
+          />
+          <button
+            type="submit"
+            disabled={!familyDraft.trim() || renameFamilyMutation.isPending}
+            className="grid h-8 w-8 place-items-center rounded-lg bg-violet-500 text-white transition-opacity hover:opacity-90 disabled:opacity-35"
+            aria-label="保存一级主题名称"
+          >
+            {renameFamilyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFamilyDraft("");
+              setIsRenamingFamily(false);
+            }}
+            className="grid h-8 w-8 place-items-center rounded-lg bg-white/[0.055] text-white/45 transition-colors hover:bg-white/10 hover:text-white/70"
+            aria-label="取消重命名"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </form>
+      )}
+
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -251,12 +345,12 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
 
 function TagColumn({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="min-h-40 rounded-xl border border-white/8 bg-black/16 p-2">
-      <div className="mb-2 flex items-center justify-between px-1">
+    <div className="flex min-h-40 max-h-72 flex-col overflow-hidden rounded-xl border border-white/8 bg-black/16 p-2">
+      <div className="mb-2 flex shrink-0 items-center justify-between px-1">
         <span className="text-[11px] font-semibold text-white/42">{title}</span>
         {action}
       </div>
-      <div className="space-y-1">{children}</div>
+      <div className="min-h-0 flex-1 space-y-1 overflow-auto pr-1">{children}</div>
     </div>
   );
 }

@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import type React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, GitMerge, Layers3, Loader2, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, ChevronRight, GitMerge, Layers3, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { SectionHeader } from "../../components/ui/SectionHeader";
 import { SurfaceCard } from "../../components/ui/SurfaceCard";
-import { createTag, deleteTag, listTags, mergeTags, type TagOut } from "../../lib/api/tags";
+import { createTag, deleteTag, listTags, mergeTags, renameTagFamily, type TagOut } from "../../lib/api/tags";
 import { cn } from "../../lib/utils";
 import { DEFAULT_TAG_FAMILIES, useTagFamilies } from "../../hooks/useTagFamilies";
 
@@ -20,13 +20,24 @@ export default function TagsPage() {
   const [newMode, setNewMode] = useState<"root" | "child">("root");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [mergeTarget, setMergeTarget] = useState("");
+  const [editingFamily, setEditingFamily] = useState<string | null>(null);
+  const [familyDraft, setFamilyDraft] = useState("");
 
   const { data: tags = [], isLoading } = useQuery({
     queryKey: ["tags", "manager"],
     queryFn: () => listTags({ limit: 500 }),
   });
 
-  const { families, addFamily } = useTagFamilies(tags);
+  const { families, addFamily, renameFamily } = useTagFamilies(tags);
+
+  const familyCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    tags.forEach((tag) => {
+      const family = familyFor(tag);
+      counts.set(family, (counts.get(family) ?? 0) + 1);
+    });
+    return counts;
+  }, [tags]);
 
   const rootTags = useMemo(
     () =>
@@ -73,6 +84,31 @@ export default function TagsPage() {
     },
   });
 
+  const renameFamilyMutation = useMutation({
+    mutationFn: ({ oldName, newName }: { oldName: string; newName: string }) =>
+      renameTagFamily(oldName, newName),
+    onSuccess: (_, variables) => {
+      const renamed = renameFamily(variables.oldName, variables.newName);
+      if (renamed) {
+        setActiveFamily(renamed);
+        setActiveParentId(null);
+      }
+      setEditingFamily(null);
+      setFamilyDraft("");
+      qc.invalidateQueries({ queryKey: ["tags"] });
+    },
+  });
+
+  function submitFamilyRename(oldName: string) {
+    const newName = familyDraft.trim();
+    if (!newName || newName === oldName || renameFamilyMutation.isPending) {
+      setEditingFamily(null);
+      setFamilyDraft("");
+      return;
+    }
+    renameFamilyMutation.mutate({ oldName, newName });
+  }
+
   function toggleSelected(id: number) {
     setSelectedIds((current) => current.includes(id) ? current.filter((tagId) => tagId !== id) : [...current, id]);
   }
@@ -96,26 +132,69 @@ export default function TagsPage() {
         }
       />
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[220px_1fr_1fr]">
-        <SurfaceCard className="overflow-hidden p-0">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[240px_minmax(0,1fr)_minmax(0,1fr)]">
+        <SurfaceCard className="flex min-h-[300px] flex-col overflow-hidden p-0">
           <PanelHeader title="一级主题" />
-          <div className="space-y-1 p-2">
+          <div className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
             {families.map((family) => (
-              <button
-                key={family}
-                onClick={() => {
-                  setActiveFamily(family);
-                  setActiveParentId(null);
-                  setNewMode("root");
-                }}
-                className={cn(
-                  "flex h-9 w-full items-center justify-between rounded-lg px-3 text-left text-sm transition-colors",
-                  activeFamily === family ? "bg-violet-400/16 text-violet-100" : "text-white/58 hover:bg-white/[0.055] hover:text-white/80"
+              <div key={family} className="group flex h-9 items-center gap-1">
+                {editingFamily === family ? (
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      submitFamilyRename(family);
+                    }}
+                    className="flex min-w-0 flex-1 items-center gap-1"
+                  >
+                    <input
+                      autoFocus
+                      value={familyDraft}
+                      onChange={(event) => setFamilyDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") {
+                          setEditingFamily(null);
+                          setFamilyDraft("");
+                        }
+                      }}
+                      className="h-8 min-w-0 flex-1 rounded-lg border border-violet-300/24 bg-white/[0.055] px-2 text-sm text-white/78 outline-none"
+                    />
+                    <button
+                      aria-label="保存一级主题名称"
+                      disabled={!familyDraft.trim() || renameFamilyMutation.isPending}
+                      className="grid h-8 w-8 place-items-center rounded-lg bg-violet-400/18 text-violet-100 disabled:opacity-35"
+                    >
+                      {renameFamilyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        setActiveFamily(family);
+                        setActiveParentId(null);
+                        setNewMode("root");
+                      }}
+                      className={cn(
+                        "flex h-9 min-w-0 flex-1 items-center justify-between rounded-lg px-3 text-left text-sm transition-colors",
+                        activeFamily === family ? "bg-violet-400/16 text-violet-100" : "text-white/58 hover:bg-white/[0.055] hover:text-white/80"
+                      )}
+                    >
+                      <span className="min-w-0 truncate">{family}</span>
+                      <span className="font-mono text-[10px] text-white/28">{familyCounts.get(family) ?? 0}</span>
+                    </button>
+                    <button
+                      aria-label={`重命名一级主题 ${family}`}
+                      onClick={() => {
+                        setEditingFamily(family);
+                        setFamilyDraft(family);
+                      }}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-white/24 opacity-0 transition-all hover:bg-white/[0.07] hover:text-white/70 group-hover:opacity-100"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </>
                 )}
-              >
-                <span>{family}</span>
-                <span className="font-mono text-[10px] text-white/28">{tags.filter((tag) => familyFor(tag) === family).length}</span>
-              </button>
+              </div>
             ))}
           </div>
           <form

@@ -40,6 +40,11 @@ class TagMergeRequest(BaseModel):
     target_name: str
 
 
+class TagCategoryRenameRequest(BaseModel):
+    old_name: str = Field(min_length=1, max_length=64)
+    new_name: str = Field(min_length=1, max_length=64)
+
+
 class AddTagsRequest(BaseModel):
     tag_names: list[str] = Field(min_length=1)
     source: int = 1  # 1 user, 2 AI, 3 system
