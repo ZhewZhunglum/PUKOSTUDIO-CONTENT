@@ -98,6 +98,11 @@ function formatDate(iso: string): string {
   });
 }
 
+function compactName(name: string): string {
+  if (name.length <= 44) return name;
+  return `${name.slice(0, 22)}…${name.slice(-10)}`;
+}
+
 async function getAsset(id: number): Promise<AssetDetail> {
   const { data } = await api.get<AssetDetail>(`/api/assets/${id}`);
   return data;
@@ -200,38 +205,53 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
   const hasAIResults = (asset.ai_tags && asset.ai_tags.length > 0) || asset.ai_description;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-4">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-white/35">
-        <Link href="/assets" className="flex items-center gap-1 hover:text-white/70 transition-colors">
-          <ArrowLeft className="h-3.5 w-3.5" />
-          素材库
-        </Link>
-        <span>/</span>
-        <span className="text-white/60 truncate max-w-xs">{asset.name}</span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2 text-sm text-white/35">
+          <Link href="/assets" className="flex items-center gap-1 transition-colors hover:text-white/70">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            素材库
+          </Link>
+          <span>/</span>
+          <span className="truncate text-white/60" title={asset.name}>{compactName(asset.name)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {asset.user_tags.slice(0, 4).map((tag) => (
+            <span key={tag} className="rounded-full border border-white/10 bg-white/[0.045] px-2.5 py-1 text-xs text-white/48">
+              {tag}
+            </span>
+          ))}
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         {/* ── Preview ── */}
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+        <div className="min-w-0 space-y-4">
+          <div className="flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-white/[0.08] bg-black/24 p-3 shadow-[0_18px_70px_oklch(0%_0_0_/_0.25)]">
             {asset.cdn_url && asset.asset_type === 1 ? (
-              <img src={asset.cdn_url} alt={asset.name} className="w-full object-contain" style={{ maxHeight: 520 }} />
+              <img src={asset.cdn_url} alt={asset.name} className="max-h-[58vh] w-full rounded-xl object-contain" />
             ) : asset.cdn_url && asset.asset_type === 2 ? (
-              <video src={asset.cdn_url} controls className="w-full" style={{ maxHeight: 520 }} />
+              <video src={asset.cdn_url} controls className="max-h-[58vh] w-full rounded-xl" />
             ) : asset.cdn_url && asset.asset_type === 3 ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex w-full items-center justify-center py-12">
                 <audio src={asset.cdn_url} controls className="w-full max-w-md" />
               </div>
             ) : (
-              <div className="flex h-64 items-center justify-center">
+              <div className="flex h-64 w-full items-center justify-center">
                 <TypeIcon className={`h-16 w-16 opacity-15 ${typeMeta.color}`} />
               </div>
             )}
           </div>
 
+          <AssetTagWorkbench
+            assetId={asset.id}
+            selectedTags={asset.user_tags}
+            onAssetUpdated={(updated) => qc.setQueryData(["asset", assetId], updated as AssetDetail)}
+          />
+
           {/* AI Analysis block */}
-          <SurfaceCard>
+          <SurfaceCard className="bg-white/[0.035]">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-3.5 w-3.5 text-violet-400" />
@@ -299,16 +319,18 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
         </div>
 
         {/* ── Sidebar ── */}
-        <div className="space-y-4">
+        <aside className="space-y-4 xl:sticky xl:top-0 xl:self-start">
           {/* Name + actions */}
-          <SurfaceCard>
+          <SurfaceCard className="bg-white/[0.045]">
             <div className="mb-4 flex items-start gap-3">
               <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.06]`}>
                 <TypeIcon className={`h-5 w-5 ${typeMeta.color}`} />
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="font-semibold leading-tight text-white/90">{asset.name}</h1>
-                <p className="text-xs text-white/35">{typeMeta.label}</p>
+                <h1 className="break-words text-base font-semibold leading-tight text-white/90" title={asset.name}>
+                  {compactName(asset.name)}
+                </h1>
+                <p className="mt-1 text-xs text-white/35">Asset #{asset.id} · {typeMeta.label}</p>
               </div>
             </div>
 
@@ -321,7 +343,7 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
                   className="p-0.5"
                 >
                   <Star
-                    className={`h-4.5 w-4.5 transition-colors ${
+                    className={`h-5 w-5 transition-colors ${
                       star <= asset.rating ? "fill-amber-400 text-amber-400" : "text-white/15 hover:text-amber-400/50"
                     }`}
                   />
@@ -367,12 +389,6 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
               </button>
             </div>
           </SurfaceCard>
-
-          <AssetTagWorkbench
-            assetId={asset.id}
-            selectedTags={asset.user_tags}
-            onAssetUpdated={(updated) => qc.setQueryData(["asset", assetId], updated as AssetDetail)}
-          />
 
           {/* Metadata */}
           <SurfaceCard>
@@ -496,7 +512,7 @@ export default function AssetDetailPage({ params }: { params: { id: string } }) 
               </button>
             </div>
           </SurfaceCard>
-        </div>
+        </aside>
       </div>
     </div>
   );

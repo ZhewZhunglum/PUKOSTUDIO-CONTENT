@@ -135,15 +135,15 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
   const busy = addMutation.isPending || removeMutation.isPending || createMutation.isPending || renameFamilyMutation.isPending;
 
   return (
-    <section className="rounded-2xl border border-violet-400/20 bg-violet-400/[0.045] p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
+    <section className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4 shadow-[0_18px_60px_oklch(0%_0_0_/_0.18)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-400/15 text-violet-200">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-400/14 text-violet-200">
             <Tag className="h-4 w-4" />
           </span>
           <div>
             <h2 className="text-sm font-semibold text-white/90">标签工作台</h2>
-            <p className="text-[11px] text-white/38">一级主题 / 二级标签 / 三级子标签</p>
+            <p className="text-[11px] text-white/38">先选一级主题，再添加二级或三级标签</p>
           </div>
         </div>
         {busy && <Loader2 className="h-4 w-4 animate-spin text-violet-300" />}
@@ -174,7 +174,7 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
         />
       </div>
 
-      <div className="grid gap-2 md:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr]">
         <TagColumn
           title="一级主题"
           action={
@@ -223,7 +223,6 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
                 setActiveParentId(tag.id);
                 toggleTag(tag.name);
               }}
-              onFocusOnly={() => setActiveParentId(tag.id)}
             />
           ))}
         </TagColumn>
@@ -251,18 +250,18 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
           event.preventDefault();
           if (newName.trim()) createMutation.mutate();
         }}
-        className="mt-3 flex gap-2"
+        className="mt-3 flex flex-wrap gap-2"
       >
         <input
           value={newName}
           onChange={(event) => setNewName(event.target.value)}
           placeholder={createMode === "child" && parent ? `在「${parent.name}」下新建三级标签` : `在「${activeFamily}」中新建二级标签`}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-white/8 bg-black/18 px-3 text-xs text-white/72 outline-none placeholder:text-white/25 focus:border-violet-300/30"
+          className="h-9 min-w-64 flex-1 rounded-lg border border-white/8 bg-black/18 px-3 text-xs text-white/72 outline-none placeholder:text-white/25 focus:border-violet-300/30"
         />
         <button
           type="submit"
           disabled={!newName.trim() || createMutation.isPending || (createMode === "child" && !parent)}
-          className="flex h-9 items-center gap-1.5 rounded-lg bg-violet-500 px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-35"
+          className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-violet-500 px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-35"
         >
           {createMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
           新建并添加
@@ -275,7 +274,7 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
             event.preventDefault();
             submitFamilyRename();
           }}
-          className="mt-2 flex gap-2 rounded-xl border border-violet-300/14 bg-violet-300/[0.055] p-2"
+          className="mt-2 flex flex-wrap gap-2 rounded-xl border border-violet-300/14 bg-violet-300/[0.055] p-2"
         >
           <input
             autoFocus
@@ -288,7 +287,7 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
               }
             }}
             placeholder={`重命名「${activeFamily}」`}
-            className="h-8 min-w-0 flex-1 rounded-lg border border-white/8 bg-black/18 px-3 text-xs text-white/72 outline-none placeholder:text-white/25 focus:border-violet-300/30"
+            className="h-8 min-w-56 flex-1 rounded-lg border border-white/8 bg-black/18 px-3 text-xs text-white/72 outline-none placeholder:text-white/25 focus:border-violet-300/30"
           />
           <button
             type="submit"
@@ -323,18 +322,18 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
             setNewFamilyName("");
           }
         }}
-        className="mt-2 flex gap-2"
+        className="mt-2 flex flex-wrap gap-2"
       >
         <input
           value={newFamilyName}
           onChange={(event) => setNewFamilyName(event.target.value)}
           placeholder="自定义一级主题，例如：素材状态"
-          className="h-8 min-w-0 flex-1 rounded-lg border border-white/8 bg-black/12 px-3 text-xs text-white/62 outline-none placeholder:text-white/22 focus:border-violet-300/30"
+          className="h-8 min-w-56 flex-1 rounded-lg border border-white/8 bg-black/12 px-3 text-xs text-white/62 outline-none placeholder:text-white/22 focus:border-violet-300/30"
         />
         <button
           type="submit"
           disabled={!newFamilyName.trim()}
-          className="h-8 rounded-lg border border-white/10 px-3 text-xs text-white/56 transition-colors hover:border-violet-300/24 hover:text-violet-100 disabled:opacity-30"
+          className="h-8 shrink-0 rounded-lg border border-white/10 px-3 text-xs text-white/56 transition-colors hover:border-violet-300/24 hover:text-violet-100 disabled:opacity-30"
         >
           新建一级
         </button>
@@ -345,7 +344,7 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
 
 function TagColumn({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-40 max-h-72 flex-col overflow-hidden rounded-xl border border-white/8 bg-black/16 p-2">
+    <div className="flex min-h-56 max-h-96 flex-col overflow-hidden rounded-xl border border-white/8 bg-black/16 p-2">
       <div className="mb-2 flex shrink-0 items-center justify-between px-1">
         <span className="text-[11px] font-semibold text-white/42">{title}</span>
         {action}
@@ -361,22 +360,19 @@ function ColumnButton({
   label,
   count,
   onClick,
-  onFocusOnly,
 }: {
   active?: boolean;
   selected?: boolean;
   label: string;
   count?: number;
   onClick: () => void;
-  onFocusOnly?: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      onMouseEnter={onFocusOnly}
       className={cn(
-        "flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-xs transition-colors",
+        "flex h-9 w-full items-center gap-2 rounded-lg px-2.5 text-left text-xs transition-colors",
         active ? "bg-white/10 text-white" : "text-white/58 hover:bg-white/[0.055] hover:text-white/82"
       )}
     >
