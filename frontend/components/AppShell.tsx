@@ -50,9 +50,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="studio-backdrop" />
       <div className="studio-noise" />
       <Sidebar onLogout={() => { clearToken(); router.replace("/login"); }} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar />
-        <main key={pathname} className="studio-page flex-1 overflow-y-auto p-6">{children}</main>
+        <main key={pathname} className="studio-page flex-1 overflow-x-hidden overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   );

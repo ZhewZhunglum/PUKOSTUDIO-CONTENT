@@ -46,9 +46,9 @@ export default function ScriptPage() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 h-full overflow-hidden">
+    <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-5 xl:grid xl:grid-cols-[440px_minmax(0,1fr)]">
       {/* Left: Config */}
-      <SurfaceCard className="overflow-auto space-y-5">
+      <SurfaceCard className="space-y-5 xl:sticky xl:top-0 xl:max-h-[calc(100vh-112px)] xl:overflow-auto">
         <SectionHeader
           icon={<Sparkles className="h-4 w-4" />}
           title="AI 脚本生成"
@@ -147,7 +147,7 @@ export default function ScriptPage() {
       </SurfaceCard>
 
       {/* Right: Output */}
-      <div className="overflow-auto space-y-4">
+      <div className="min-w-0 space-y-4">
         {data ? (
           <>
             <ResultCard

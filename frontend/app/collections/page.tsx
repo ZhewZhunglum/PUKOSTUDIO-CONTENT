@@ -93,9 +93,9 @@ export default function CollectionsPage() {
   });
 
   return (
-    <div className="flex h-full gap-0 overflow-hidden -m-6">
+    <div className="mx-auto flex h-full w-full max-w-[1680px] gap-4 overflow-hidden">
       {/* Sidebar */}
-      <aside className="flex w-64 shrink-0 flex-col border-r border-white/[0.06] bg-[oklch(10%_0.018_278)]">
+      <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.035]">
         <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-white/30">集合</span>
           <div className="flex items-center gap-1">
@@ -195,7 +195,7 @@ export default function CollectionsPage() {
       </aside>
 
       {/* Main */}
-      <main className="flex flex-1 flex-col overflow-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]">
         {!selectedCollection ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-white/15">
             <FolderOpen className="h-14 w-14 opacity-30" />

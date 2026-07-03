@@ -22,10 +22,10 @@ export function RightPanel(props: RightPanelProps) {
 
   return (
     <aside
-      className="flex w-[360px] shrink-0 flex-col"
+      className="flex w-[380px] shrink-0 flex-col overflow-hidden rounded-2xl"
       style={{
-        borderLeft: "1px solid var(--line)",
-        background: "var(--surface-0)",
+        border: "1px solid var(--line)",
+        background: "oklch(100% 0 0 / 0.035)",
       }}
     >
       <TabBar tab={tab} setTab={setTab} />

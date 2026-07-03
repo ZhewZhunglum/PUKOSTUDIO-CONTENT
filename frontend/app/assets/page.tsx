@@ -125,8 +125,10 @@ function FilterRail({
   return (
     <aside
       style={{
-        width: 224, flexShrink: 0,
-        borderRight: "1px solid var(--line)",
+        width: 240, flexShrink: 0,
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        background: "oklch(100% 0 0 / 0.035)",
         padding: "24px 16px",
         overflow: "auto",
         height: "100%",
@@ -442,7 +444,7 @@ function LibraryHeader({
   return (
     <div
       style={{
-        padding: "24px 32px 18px",
+        padding: "20px 24px 18px",
         borderBottom: "1px solid var(--line)",
         flexShrink: 0,
       }}
@@ -835,7 +837,7 @@ export default function AssetsPage() {
       style={{
         display: "flex",
         height: "100%", overflow: "hidden",
-        margin: "-24px",
+        gap: 16,
         position: "relative",
       }}
     >
@@ -871,7 +873,7 @@ export default function AssetsPage() {
         typesCount={typesCount}
       />
 
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid var(--line)", borderRadius: 16, background: "oklch(100% 0 0 / 0.025)" }}>
         <LibraryHeader
           filters={filters}
           onChange={handleFilterChange}
@@ -882,7 +884,7 @@ export default function AssetsPage() {
           onClearVisual={() => setVisualResults(null)}
         />
 
-        <div style={{ flex: 1, overflow: "hidden", padding: "20px 32px 32px" }}>
+        <div style={{ flex: 1, overflow: "hidden", padding: "20px 24px 24px" }}>
           {isVisualSearching ? (
             <div
               style={{

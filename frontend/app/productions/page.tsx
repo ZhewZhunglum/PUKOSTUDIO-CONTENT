@@ -381,7 +381,7 @@ function DetailPanel({
   });
 
   return (
-    <aside className="flex w-[400px] shrink-0 flex-col border-l border-white/[0.06] overflow-hidden">
+    <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.035] xl:max-h-full">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-3">
         <div className="flex-1 min-w-0">
@@ -878,9 +878,9 @@ export default function ProductionsPage() {
   const selectedProd = items.find((p) => p.id === selectedId) ?? null;
 
   return (
-    <div className="flex h-full flex-col gap-0 overflow-hidden -m-6">
+    <div className="mx-auto flex h-full w-full max-w-[1680px] flex-col gap-5 overflow-hidden">
       {/* Header bar */}
-      <div className="shrink-0 border-b border-white/[0.06] px-6 pt-6 pb-4">
+      <div className="shrink-0 rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4">
         <SectionHeader
           icon={<Film className="h-4 w-4" />}
           title="成片库"
@@ -945,9 +945,9 @@ export default function ProductionsPage() {
       </div>
 
       {/* Body */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         {/* List */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="min-w-0 overflow-y-auto rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
           {isLoading ? (
             <div className="flex h-40 items-center justify-center">
               <Loader2 className="h-5 w-5 animate-spin text-white/25" />
@@ -981,11 +981,15 @@ export default function ProductionsPage() {
         </div>
 
         {/* Detail panel */}
-        {selectedProd && (
+        {selectedProd ? (
           <DetailPanel
             prod={selectedProd}
             onClose={() => setSelectedId(null)}
           />
+        ) : (
+          <div className="hidden min-h-0 items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.02] text-sm text-white/24 xl:flex">
+            选择一个成片查看详情和投放数据
+          </div>
         )}
       </div>
 

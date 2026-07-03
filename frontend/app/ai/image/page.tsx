@@ -43,9 +43,9 @@ export default function ImageGenPage() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[380px_1fr] h-full overflow-hidden">
+    <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-5 xl:grid xl:grid-cols-[420px_minmax(0,1fr)]">
       {/* Left: Config */}
-      <SurfaceCard className="overflow-auto space-y-5">
+      <SurfaceCard className="space-y-5 xl:sticky xl:top-0 xl:max-h-[calc(100vh-112px)] xl:overflow-auto">
         <SectionHeader
           icon={<Wand2 className="h-4 w-4" />}
           title="AI 图片生成"
@@ -123,15 +123,15 @@ export default function ImageGenPage() {
       </SurfaceCard>
 
       {/* Right: Results */}
-      <div className="overflow-auto">
+      <div className="min-w-0">
         {data?.asset_ids.length ? (
-          <SurfaceCard noPad className="overflow-auto p-5 space-y-4">
+          <SurfaceCard noPad className="space-y-4 p-5">
             <div className="flex items-center justify-between">
               <p className="text-sm text-white/40">
                 生成 {data.asset_ids.length} 张 · 已保存到素材库 · 费用 ${data.cost_usd.toFixed(4)}
               </p>
             </div>
-            <div className="grid gap-3 grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
               {data.asset_ids.map((assetId, i) => (
                 <div
                   key={assetId}
@@ -162,7 +162,7 @@ export default function ImageGenPage() {
             </div>
           </SurfaceCard>
         ) : (
-          <SurfaceCard className="flex h-full min-h-[400px] items-center justify-center">
+          <SurfaceCard className="flex min-h-[420px] items-center justify-center">
             <div className="flex h-full min-h-[400px] items-center justify-center rounded-2xl border border-dashed border-white/[0.08] text-white/20">
               <div className="text-center">
                 <ImageIcon className="mx-auto h-10 w-10 opacity-30" />

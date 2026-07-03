@@ -127,9 +127,9 @@ export default function VideoPage() {
   const totalSec = (totalDurationMs / 1000).toFixed(1);
 
   return (
-    <div className="flex h-full gap-0 overflow-hidden -m-6">
+    <div className="mx-auto flex h-full w-full max-w-[1680px] gap-4 overflow-hidden">
       {/* Sidebar: project list */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-white/[0.06] bg-[oklch(10%_0.018_278)]">
+      <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.035]">
         <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-white/30">视频项目</span>
           <button
@@ -201,7 +201,7 @@ export default function VideoPage() {
       </aside>
 
       {/* Main: editor */}
-      <main className="flex flex-1 flex-col overflow-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]">
         {!displayProject ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-white/20">
             <Film className="h-12 w-12 opacity-20" />

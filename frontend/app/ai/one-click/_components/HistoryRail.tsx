@@ -40,10 +40,10 @@ function formatTs(ts: string): string {
 export function HistoryRail({ runs, loading, activeId, onSelect }: HistoryRailProps) {
   return (
     <aside
-      className="flex w-[260px] shrink-0 flex-col"
+      className="flex w-[280px] shrink-0 flex-col overflow-hidden rounded-2xl"
       style={{
-        borderRight: "1px solid var(--line)",
-        background: "var(--surface-0)",
+        border: "1px solid var(--line)",
+        background: "oklch(100% 0 0 / 0.035)",
       }}
     >
       <div

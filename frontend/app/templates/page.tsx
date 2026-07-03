@@ -83,9 +83,9 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="flex h-full gap-0 overflow-hidden -m-6">
+    <div className="mx-auto flex h-full w-full max-w-[1680px] gap-4 overflow-hidden">
       {/* Sidebar */}
-      <aside className="flex w-72 flex-col border-r border-border bg-card overflow-hidden">
+      <aside className="flex w-80 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card/80">
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export default function TemplatesPage() {
       </aside>
 
       {/* Detail panel / Create form */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="min-w-0 flex-1 overflow-y-auto rounded-2xl border border-border bg-card/40">
         {creating ? (
           <div className="max-w-2xl space-y-5 p-8">
             <h2 className="text-lg font-semibold">新建模板</h2>

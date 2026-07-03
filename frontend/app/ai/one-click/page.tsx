@@ -203,8 +203,10 @@ function HistoryRail({
   return (
     <aside
       style={{
-        width: 260, flexShrink: 0,
-        borderRight: "1px solid var(--line)",
+        width: 280, flexShrink: 0,
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        background: "oklch(100% 0 0 / 0.035)",
         display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
       }}
     >
@@ -1026,7 +1028,10 @@ function RightPanel(props: React.ComponentProps<typeof BriefForm> & { activeRun:
       style={{
         display: "flex", flexDirection: "column",
         height: "100%", overflow: "hidden",
-        width: 360, flexShrink: 0,
+        width: 380, flexShrink: 0,
+        border: "1px solid var(--line)",
+        borderRadius: 16,
+        background: "oklch(100% 0 0 / 0.035)",
       }}
     >
       <div
@@ -1330,9 +1335,12 @@ export default function OneClickPage() {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "260px 1fr 360px",
+        gridTemplateColumns: "280px minmax(0, 1fr) 380px",
+        gap: 16,
         height: "100%", overflow: "hidden",
-        margin: "-24px",
+        maxWidth: 1680,
+        width: "100%",
+        margin: "0 auto",
       }}
     >
       <HistoryRail
@@ -1345,8 +1353,11 @@ export default function OneClickPage() {
       <main
         style={{
           display: "flex", flexDirection: "column",
+          minWidth: 0,
           overflow: "hidden",
-          borderRight: "1px solid var(--line)",
+          border: "1px solid var(--line)",
+          borderRadius: 16,
+          background: "oklch(100% 0 0 / 0.025)",
         }}
       >
         {displayRun ? (
