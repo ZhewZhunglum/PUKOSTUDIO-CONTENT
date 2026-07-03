@@ -6,6 +6,7 @@ export interface AssetListItem {
   mime_type: string | null;
   file_size: number | null;
   thumbnail_key: string | null;
+  thumbnail_url: string | null;
   cdn_url: string | null;
   duration_ms: number | null;
   width: number | null;

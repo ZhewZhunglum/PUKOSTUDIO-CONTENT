@@ -2,7 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+from app.core.storage import storage
 
 ASSET_TYPE_NAMES = {
     1: "image", 2: "video", 3: "audio", 4: "subtitle",
@@ -107,6 +109,11 @@ class AssetOut(BaseModel):
     def asset_type_name(self) -> str:
         return ASSET_TYPE_NAMES.get(self.asset_type, "unknown")
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def thumbnail_url(self) -> str | None:
+        return storage.public_url(self.thumbnail_key) if self.thumbnail_key else None
+
 
 class AssetListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -131,6 +138,11 @@ class AssetListItem(BaseModel):
     source_url: str | None = None
     source_platform: str | None = None
     source_extractor: str | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def thumbnail_url(self) -> str | None:
+        return storage.public_url(self.thumbnail_key) if self.thumbnail_key else None
 
 
 class UploadInitRequest(BaseModel):

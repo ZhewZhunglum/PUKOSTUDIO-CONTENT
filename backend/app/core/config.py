@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
     admin_username: str = ""
     admin_password: str = ""
+    auto_ai_tag_on_ingest: bool = False
+    auto_embedding_on_ingest: bool = False
 
     # Database
     database_url: str = "postgresql+asyncpg://cf:dev@localhost:5432/contentforge"

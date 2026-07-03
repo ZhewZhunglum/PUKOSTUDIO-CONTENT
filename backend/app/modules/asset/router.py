@@ -90,8 +90,11 @@ async def upload_complete(req: UploadCompleteRequest, db: DbSession) -> AssetOut
     asset = await service.create_asset(db, create_data)
     await db.commit()
 
-    await enqueue_task("ai_tag", {"asset_id": asset.id, "quality": "bulk_local"})
-    if asset.asset_type == 1:
+    if asset.asset_type == 2:
+        await enqueue_task("generate_thumbnail", {"asset_id": asset.id})
+    if settings.auto_ai_tag_on_ingest and asset.asset_type in (1, 2):
+        await enqueue_task("ai_tag", {"asset_id": asset.id, "quality": "bulk_local"})
+    if settings.auto_embedding_on_ingest and asset.asset_type == 1:
         await enqueue_task("embed_visual", {"asset_id": asset.id})
 
     return AssetOut.model_validate(asset)

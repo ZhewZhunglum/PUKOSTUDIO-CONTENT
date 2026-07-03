@@ -4,6 +4,7 @@ Polls the task table and dispatches to registered handlers.
 Run: python -m app.workers.main
 """
 import asyncio
+import json
 import os
 import signal
 import socket
@@ -56,10 +57,10 @@ async def _complete_task(
     await session.execute(
         text("""
             UPDATE task
-            SET status = 'done', result = :result, finished_at = NOW(), progress = 100
+            SET status = 'done', result = CAST(:result AS JSON), finished_at = NOW(), progress = 100
             WHERE id = :id
         """),
-        {"id": task_id, "result": result},
+        {"id": task_id, "result": json.dumps(result)},
     )
     await session.commit()
 

@@ -165,11 +165,12 @@ export function AssetCard({ asset, selected, onToggleSelect, selectionActive, on
 
   const isImage = asset.asset_type === 1;
   const isVideo = asset.asset_type === 2;
-  const thumbUrl = asset.cdn_url ?? null;
+  const thumbUrl = isVideo ? (asset.thumbnail_url ?? null) : (asset.thumbnail_url ?? asset.cdn_url ?? null);
+  const previewUrl = asset.cdn_url ?? null;
   // Fall back to gradient placeholder if the image fails to load
   const hasMedia = !!(thumbUrl && (isImage || isVideo) && !imgError);
   const tags = asset.user_tags.slice(0, 3);
-  const aiPending = asset.ai_processing_status === 0;
+  const aiPending = asset.ai_processing_status === 1;
 
   async function handleFavorite(e: React.MouseEvent) {
     e.preventDefault();
@@ -270,7 +271,7 @@ export function AssetCard({ asset, selected, onToggleSelect, selectionActive, on
             />
             <video
               ref={videoRef}
-              src={thumbUrl!}
+              src={previewUrl ?? undefined}
               muted
               loop
               playsInline

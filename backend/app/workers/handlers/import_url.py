@@ -22,6 +22,7 @@ from app.core.storage import storage
 from app.core.task_utils import enqueue_task
 from app.modules.asset import service as asset_service
 from app.modules.asset.schemas import AssetCreate
+from app.modules.asset.thumbnails import extract_video_first_frame_to_storage
 from app.modules.tag.service import add_tags_to_asset
 from app.workers.registry import register_handler
 
@@ -142,7 +143,8 @@ async def _persist_downloaded_asset(
     except Exception as exc:
         raise ImportUrlError("storage_failed", str(exc)) from exc
 
-    thumbnail_key = await _upload_thumbnail(info)
+    asset_type = _asset_type(downloaded.mime_type, downloaded.file_ext)
+    thumbnail_key = await _first_available_thumbnail(downloaded, asset_type)
     name = custom_name or info.title or f"{info.platform.label}导入_{uuid.uuid4().hex[:8]}"
     tags = _auto_tags(info, user_tags)
 
@@ -152,7 +154,7 @@ async def _persist_downloaded_asset(
             AssetCreate(
                 name=name,
                 description=_description_from_info(info),
-                asset_type=_asset_type(downloaded.mime_type, downloaded.file_ext),
+                asset_type=asset_type,
                 storage_key=storage_key,
                 mime_type=downloaded.mime_type,
                 file_format=downloaded.file_ext,
@@ -347,6 +349,14 @@ async def _upload_thumbnail(info: RemoteInfo) -> str | None:
         return None
 
 
+async def _first_available_thumbnail(downloaded: DownloadedFile, asset_type: int) -> str | None:
+    if asset_type == 2:
+        thumbnail_key = await extract_video_first_frame_to_storage(downloaded.path)
+        if thumbnail_key:
+            return thumbnail_key
+    return await _upload_thumbnail(downloaded.info)
+
+
 def _apply_media_metadata(asset: Any, info: RemoteInfo, thumbnail_key: str | None) -> None:
     asset.duration_ms = info.duration_ms
     asset.width = info.width
@@ -356,9 +366,9 @@ def _apply_media_metadata(asset: Any, info: RemoteInfo, thumbnail_key: str | Non
 
 
 async def _enqueue_post_processing(asset_id: int, asset_type: int) -> None:
-    if asset_type in (1, 2):
+    if settings.auto_ai_tag_on_ingest and asset_type in (1, 2):
         await enqueue_task("ai_tag", {"asset_id": asset_id, "quality": "bulk_local"})
-    if asset_type == 2:
+    if settings.auto_embedding_on_ingest and asset_type == 2:
         await enqueue_task("embed_visual", {"asset_id": asset_id})
 
 
