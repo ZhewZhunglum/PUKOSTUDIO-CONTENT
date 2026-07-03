@@ -9,7 +9,7 @@ import {
   Mic, Image as ImageIcon, FileText,
   Clock as ClockIcon, Loader2,
 } from "lucide-react";
-import { getOverview, getActivity, getStorage } from "@/lib/api/stats";
+import { getOverview, getActivity, getStorage, getStudioPulse, type StudioPulse } from "@/lib/api/stats";
 import { listPipelineRuns, type PipelineRun } from "@/lib/api/pipeline";
 import { listProductions, type Production } from "@/lib/api/productions";
 import { listTags, type TagOut } from "@/lib/api/tags";
@@ -658,6 +658,89 @@ function HealthRows({ health }: { health: Record<string, string> | undefined }) 
   );
 }
 
+function StudioPulseBand({ pulse }: { pulse: StudioPulse | undefined }) {
+  const throughput = pulse?.throughput?.length ? pulse.throughput : [
+    { date: "D-6", count: 0 },
+    { date: "D-5", count: 0 },
+    { date: "D-4", count: 0 },
+    { date: "D-3", count: 0 },
+    { date: "D-2", count: 0 },
+    { date: "D-1", count: 0 },
+    { date: "D", count: 0 },
+  ];
+  const max = Math.max(1, ...throughput.map((item) => item.count));
+  const seed = pulse?.motion_seed ?? 1;
+
+  return (
+    <div
+      className="studio-card dashboard-pulse-band"
+      style={{
+        marginBottom: 28,
+        minHeight: 170,
+        borderRadius: 16,
+        border: "1px solid var(--line)",
+        background: "linear-gradient(135deg, oklch(100% 0 0 / 0.055), oklch(100% 0 0 / 0.018))",
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr) 360px",
+        gap: 26,
+        padding: 22,
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <span className="eyebrow" style={{ color: "var(--good)" }}>LIVE STUDIO PULSE</span>
+          <span style={{ height: 1, flex: 1, maxWidth: 180, background: "var(--line)" }} />
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--ink-lo)" }}>
+            SEED {seed}
+          </span>
+        </div>
+        <div className="dashboard-pulse-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
+          <PulseMetric label="7日素材" value={pulse?.assets_7d ?? 0} tone="var(--info)" />
+          <PulseMetric label="7日成片" value={pulse?.productions_7d ?? 0} tone="var(--good)" />
+          <PulseMetric label="运行流水线" value={pulse?.active_pipelines ?? 0} tone="var(--accent)" />
+          <PulseMetric label="7日 AI 调用" value={pulse?.ai_calls_7d ?? 0} tone="var(--warn)" />
+        </div>
+      </div>
+
+      <div className="studio-scanline" style={{ minHeight: 126, borderRadius: 12, border: "1px solid var(--line)", background: "oklch(0% 0 0 / 0.18)", padding: "14px 14px 12px" }}>
+        <div style={{ display: "flex", alignItems: "end", gap: 8, height: 82 }}>
+          {throughput.map((item, index) => (
+            <div key={`${item.date}-${index}`} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "end", gap: 6, minWidth: 0 }}>
+              <span
+                style={{
+                  height: Math.max(8, (item.count / max) * 76),
+                  borderRadius: 3,
+                  background: index % 3 === 0 ? "var(--good)" : index % 3 === 1 ? "var(--info)" : "var(--accent)",
+                  opacity: item.count ? 0.85 : 0.22,
+                  transition: "height 0.45s ease",
+                }}
+              />
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-lo)" }}>
+          <span>7D INGEST</span>
+          <span>{throughput.reduce((sum, item) => sum + item.count, 0)} ITEMS</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PulseMetric({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div style={{ border: "1px solid var(--line)", borderRadius: 12, padding: "12px 14px", background: "oklch(100% 0 0 / 0.035)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <span style={{ fontSize: 12, color: "var(--ink-mid)" }}>{label}</span>
+        <span style={{ width: 6, height: 6, borderRadius: 999, background: tone, boxShadow: `0 0 12px ${tone}` }} />
+      </div>
+      <div style={{ marginTop: 12, fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: "var(--ink-hi)", fontVariantNumeric: "tabular-nums" }}>
+        {value.toLocaleString()}
+      </div>
+    </div>
+  );
+}
+
 // ── Dashboard ──────────────────────────────────────────────────
 
 const TYPE_LABEL: Record<number, string> = {
@@ -673,6 +756,12 @@ export default function Dashboard() {
   });
   const { data: storage } = useQuery({
     queryKey: ["stats-storage"], queryFn: getStorage, retry: 1,
+  });
+  const { data: studioPulse } = useQuery({
+    queryKey: ["stats-studio-pulse"],
+    queryFn: getStudioPulse,
+    refetchInterval: 45_000,
+    retry: 1,
   });
   const { data: health } = useQuery({
     queryKey: ["health"],
@@ -780,12 +869,12 @@ export default function Dashboard() {
             </span>
           </div>
           <h1
+            className="text-[36px] sm:text-[44px] lg:text-[52px]"
             style={{
               margin: 0,
               fontFamily: "var(--font-display)",
-              fontSize: "clamp(36px, 5vw, 52px)",
               fontWeight: 500,
-              letterSpacing: "-0.035em",
+              letterSpacing: 0,
               lineHeight: 1.0,
               color: "var(--ink-hi)",
             }}
@@ -838,6 +927,9 @@ export default function Dashboard() {
           />
         </div>
       </div>
+
+      {/* ═══ STUDIO PULSE ═══ */}
+      <StudioPulseBand pulse={studioPulse} />
 
       {/* ═══ NOW FORGING ═══ */}
       {activeRun && <NowForging run={activeRun} />}

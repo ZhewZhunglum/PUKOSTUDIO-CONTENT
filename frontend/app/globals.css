@@ -168,6 +168,34 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+@keyframes studio-sweep {
+  0% { transform: translate3d(-18%, -6%, 0) rotate(-8deg); opacity: 0.26; }
+  50% { transform: translate3d(8%, 4%, 0) rotate(5deg); opacity: 0.5; }
+  100% { transform: translate3d(18%, -2%, 0) rotate(-4deg); opacity: 0.24; }
+}
+
+@keyframes studio-drift {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(16px, -18px, 0) rotate(5deg); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+
+@keyframes studio-rise {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); filter: blur(8px); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+}
+
+@keyframes studio-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes studio-scan {
+  0% { transform: translateY(-100%); opacity: 0; }
+  18%, 68% { opacity: 0.55; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
 .shimmer {
   background: linear-gradient(
     90deg,
@@ -177,6 +205,140 @@
   );
   background-size: 200% 100%;
   animation: shimmer 2.4s linear infinite;
+}
+
+.studio-shell {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, oklch(7.5% 0.024 276) 0%, oklch(6.5% 0.018 252) 48%, oklch(8.2% 0.018 210) 100%);
+}
+
+.studio-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.studio-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background:
+    repeating-linear-gradient(90deg, oklch(100% 0 0 / 0.035) 0 1px, transparent 1px 96px),
+    repeating-linear-gradient(0deg, oklch(100% 0 0 / 0.028) 0 1px, transparent 1px 96px);
+  mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 72%, transparent 100%);
+  opacity: 0.48;
+}
+
+.studio-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: -22% -18%;
+  background:
+    linear-gradient(112deg, transparent 0 24%, oklch(72% 0.16 205 / 0.12) 35%, transparent 48%),
+    linear-gradient(68deg, transparent 0 38%, oklch(78% 0.14 150 / 0.10) 48%, transparent 64%),
+    linear-gradient(142deg, transparent 0 52%, oklch(80% 0.15 38 / 0.10) 62%, transparent 74%);
+  filter: blur(18px);
+  animation: studio-sweep 18s ease-in-out infinite alternate;
+}
+
+.studio-noise {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.22;
+  mix-blend-mode: screen;
+  background-image:
+    linear-gradient(90deg, transparent, oklch(100% 0 0 / 0.03), transparent),
+    repeating-linear-gradient(0deg, transparent 0 2px, oklch(100% 0 0 / 0.018) 2px 3px);
+}
+
+.studio-page {
+  animation: studio-rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.studio-card {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.studio-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, oklch(100% 0 0 / 0.08) 44%, transparent 64%);
+  transform: translateX(-120%);
+  transition: transform 520ms ease;
+  pointer-events: none;
+}
+
+.studio-card:hover {
+  transform: translate3d(0, -3px, 0);
+  border-color: oklch(100% 0 0 / 0.18);
+  box-shadow: 0 22px 70px oklch(0% 0 0 / 0.32);
+}
+
+.studio-card:hover::before {
+  transform: translateX(120%);
+}
+
+.studio-scanline {
+  position: relative;
+  overflow: hidden;
+}
+
+.studio-scanline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  height: 44%;
+  background: linear-gradient(180deg, transparent, oklch(100% 0 0 / 0.08), transparent);
+  animation: studio-scan 4.5s linear infinite;
+  pointer-events: none;
+}
+
+.studio-shard {
+  animation: studio-drift 7s ease-in-out infinite;
+}
+
+.studio-marquee {
+  display: flex;
+  width: max-content;
+  animation: studio-marquee 28s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-backdrop::after,
+  .studio-page,
+  .studio-card::before,
+  .studio-shard,
+  .studio-marquee,
+  .studio-scanline::after,
+  .shimmer {
+    animation: none !important;
+  }
+
+  .studio-card:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .dashboard-pulse-band {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboard-pulse-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }
 
 /* ── Range inputs ─────────────────────────────────────── */

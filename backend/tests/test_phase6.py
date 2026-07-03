@@ -311,6 +311,21 @@ class TestRateLimiter:
         assert resp.status_code == 200
         assert resp.json()["assets"]["total"] == 10
 
+    async def test_stats_studio_pulse_cached(self, client: AsyncClient):
+        cached_data = {
+            "assets_7d": 3,
+            "productions_7d": 1,
+            "active_pipelines": 0,
+            "ai_calls_7d": 7,
+            "motion_seed": 83,
+            "throughput": [{"date": "2026-07-03", "count": 3}],
+        }
+        with patch("app.modules.stats.router.cache_get", new_callable=AsyncMock, return_value=cached_data):
+            resp = await client.get("/api/stats/studio")
+        assert resp.status_code == 200
+        assert resp.json()["motion_seed"] == 83
+        assert resp.json()["throughput"][0]["count"] == 3
+
 
 # ── Collection service: get_collection_assets ────────────────────────────────
 

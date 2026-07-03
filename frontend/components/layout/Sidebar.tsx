@@ -85,10 +85,11 @@ export function Sidebar({ onLogout }: { onLogout?: () => void }) {
     <aside
       style={{
         width: "var(--sidebar-w, 232px)",
-        background: "var(--sidebar-bg)",
+        background: "oklch(7.5% 0.022 278 / 0.84)",
         borderRight: "1px solid var(--line)",
+        backdropFilter: "blur(18px)",
       }}
-      className="flex h-full shrink-0 flex-col"
+      className="flex h-full shrink-0 flex-col shadow-[18px_0_80px_oklch(0%_0_0_/_0.22)]"
     >
       {/* ── Wordmark ── */}
       <div
@@ -227,17 +228,18 @@ function NavLink({
         alignItems: "center",
         gap: 10,
         padding: "6px 18px",
-        background: isActive ? "oklch(100% 0 0 / 0.04)" : "transparent",
+        background: isActive ? "linear-gradient(90deg, oklch(100% 0 0 / 0.07), transparent)" : "transparent",
         color: isActive ? "var(--ink-hi)" : "var(--ink-mid)",
         fontFamily: "var(--font-cn)",
         fontSize: 12.5,
         fontWeight: isActive ? 500 : 400,
-        transition: "background 0.12s, color 0.12s",
+        transition: "background 0.16s, color 0.16s, transform 0.16s",
+        transform: isActive ? "translateX(2px)" : "translateX(0)",
         textDecoration: "none",
       }}
       className={cn(
         "group",
-        !isActive && "hover:bg-white/[0.02] hover:!text-ink"
+        !isActive && "hover:bg-white/[0.035] hover:!text-ink hover:translate-x-0.5"
       )}
     >
       {/* Active bar */}
@@ -247,8 +249,9 @@ function NavLink({
             position: "absolute",
             left: 0, top: 6, bottom: 6,
             width: 2,
-            background: "var(--accent)",
+            background: "linear-gradient(180deg, var(--accent), var(--info), var(--good))",
             borderRadius: "0 2px 2px 0",
+            boxShadow: "0 0 18px var(--accent-soft)",
           }}
         />
       )}

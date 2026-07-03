@@ -106,6 +106,97 @@ async def overview(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
     return stats
 
 
+@router.get("/studio")
+async def studio_pulse(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
+    """Compact live studio metrics for motion-led UI surfaces."""
+    cached = await cache_get("stats:studio")
+    if cached is not None:
+        return cached
+
+    pulse: dict[str, Any] = {
+        "assets_7d": 0,
+        "productions_7d": 0,
+        "active_pipelines": 0,
+        "ai_calls_7d": 0,
+        "motion_seed": 1,
+        "throughput": [],
+    }
+    since = utcnow() - timedelta(days=7)
+
+    try:
+        r = await db.execute(
+            text("""
+                SELECT COUNT(*)
+                FROM asset
+                WHERE is_deleted = false AND imported_at >= :since
+            """),
+            {"since": since},
+        )
+        pulse["assets_7d"] = int(r.scalar() or 0)
+    except Exception as exc:
+        logger.debug("studio pulse: assets_7d failed — {}", exc)
+
+    try:
+        r = await db.execute(
+            text("""
+                SELECT COUNT(*)
+                FROM production
+                WHERE created_at >= :since
+            """),
+            {"since": since},
+        )
+        pulse["productions_7d"] = int(r.scalar() or 0)
+    except Exception as exc:
+        logger.debug("studio pulse: productions_7d failed — {}", exc)
+
+    try:
+        r = await db.execute(text("SELECT COUNT(*) FROM pipeline_run WHERE status = 0"))
+        pulse["active_pipelines"] = int(r.scalar() or 0)
+    except Exception as exc:
+        logger.debug("studio pulse: active_pipelines failed — {}", exc)
+
+    try:
+        r = await db.execute(
+            text("""
+                SELECT COUNT(*)
+                FROM ai_call_log
+                WHERE created_at >= :since
+            """),
+            {"since": since},
+        )
+        pulse["ai_calls_7d"] = int(r.scalar() or 0)
+    except Exception as exc:
+        logger.debug("studio pulse: ai_calls_7d failed — {}", exc)
+
+    try:
+        r = await db.execute(
+            text("""
+                SELECT date_trunc('day', imported_at) AS day, COUNT(*) AS count
+                FROM asset
+                WHERE is_deleted = false AND imported_at >= :since
+                GROUP BY day
+                ORDER BY day ASC
+            """),
+            {"since": since},
+        )
+        pulse["throughput"] = [
+            {"date": row[0].date().isoformat(), "count": int(row[1])}
+            for row in r.fetchall()
+        ]
+    except Exception as exc:
+        logger.debug("studio pulse: throughput failed — {}", exc)
+
+    pulse["motion_seed"] = (
+        int(pulse["assets_7d"])
+        + int(pulse["productions_7d"]) * 3
+        + int(pulse["active_pipelines"]) * 7
+        + int(pulse["ai_calls_7d"]) * 11
+    ) or 1
+
+    await cache_set("stats:studio", pulse, ttl=_OVERVIEW_TTL)
+    return pulse
+
+
 @router.get("/costs")
 async def ai_costs(
     days: int = 30,

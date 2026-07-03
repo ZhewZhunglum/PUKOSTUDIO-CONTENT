@@ -53,8 +53,22 @@ export interface StorageStats {
   by_type: { asset_type: number; count: number; bytes: number }[];
 }
 
+export interface StudioPulse {
+  assets_7d: number;
+  productions_7d: number;
+  active_pipelines: number;
+  ai_calls_7d: number;
+  motion_seed: number;
+  throughput: { date: string; count: number }[];
+}
+
 export async function getOverview(): Promise<StatsOverview> {
   const { data } = await api.get<StatsOverview>("/api/stats/overview");
+  return data;
+}
+
+export async function getStudioPulse(): Promise<StudioPulse> {
+  const { data } = await api.get<StudioPulse>("/api/stats/studio");
   return data;
 }
 

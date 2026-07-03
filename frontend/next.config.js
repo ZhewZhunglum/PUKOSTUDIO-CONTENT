@@ -24,14 +24,13 @@ const nextConfig = {
   images: { remotePatterns },
 
   // SSR-side API proxy (used for server components / next/fetch and direct
-  // port-3847 access). Uses INTERNAL_API_URL (Docker service name) so the
-  // Next.js server can reach the backend container. Client-side axios calls
-  // use relative URLs (baseURL: "") and go through nginx instead.
+  // port-3847 access). Docker sets INTERNAL_API_URL to the backend service
+  // name; local dev defaults to the host FastAPI server.
   async rewrites() {
     const apiBase =
       process.env.INTERNAL_API_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
-      "http://backend:8371";
+      "http://127.0.0.1:8371";
     return [
       {
         source: "/api/:path*",

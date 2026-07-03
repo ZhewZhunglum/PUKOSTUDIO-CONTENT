@@ -175,10 +175,13 @@ export function Topbar() {
         style={{
           height: 56, flexShrink: 0,
           borderBottom: "1px solid var(--line)",
-          background: "var(--surface-0)",
+          background: "oklch(8.5% 0.020 278 / 0.74)",
+          backdropFilter: "blur(16px)",
           display: "flex", alignItems: "center",
           padding: "0 24px", gap: 18,
+          boxShadow: "0 12px 46px oklch(0% 0 0 / 0.18)",
         }}
+        className="studio-scanline"
       >
         {/* Breadcrumb */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -200,7 +203,7 @@ export function Topbar() {
             flex: 1, maxWidth: 480,
             display: "flex", alignItems: "center", gap: 10,
             height: 34, padding: "0 12px",
-            background: "oklch(100% 0 0 / 0.03)",
+            background: "linear-gradient(90deg, oklch(100% 0 0 / 0.05), oklch(100% 0 0 / 0.025))",
             border: "1px solid var(--line)",
             borderRadius: 10,
             color: "var(--ink-lo)",
@@ -208,15 +211,17 @@ export function Topbar() {
             fontSize: 12,
             fontFamily: "var(--font-cn)",
             textAlign: "left",
-            transition: "border-color 0.12s, color 0.12s",
+            transition: "border-color 0.16s, color 0.16s, transform 0.16s, background 0.16s",
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line-hi)";
             (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-mid)";
+            (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line)";
             (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-lo)";
+            (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
           }}
         >
           <Search size={13} />
