@@ -8,15 +8,15 @@ import { SectionHeader } from "../../components/ui/SectionHeader";
 import { SurfaceCard } from "../../components/ui/SurfaceCard";
 import { createTag, deleteTag, listTags, mergeTags, type TagOut } from "../../lib/api/tags";
 import { cn } from "../../lib/utils";
-
-const DEFAULT_FAMILIES = ["场景", "人群", "情绪", "卖点", "画面元素", "脚本结构", "平台", "品类"];
+import { DEFAULT_TAG_FAMILIES, useTagFamilies } from "../../hooks/useTagFamilies";
 
 export default function TagsPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [activeFamily, setActiveFamily] = useState(DEFAULT_FAMILIES[0]);
+  const [activeFamily, setActiveFamily] = useState(DEFAULT_TAG_FAMILIES[0]);
   const [activeParentId, setActiveParentId] = useState<number | null>(null);
   const [newName, setNewName] = useState("");
+  const [newFamilyName, setNewFamilyName] = useState("");
   const [newMode, setNewMode] = useState<"root" | "child">("root");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [mergeTarget, setMergeTarget] = useState("");
@@ -26,14 +26,7 @@ export default function TagsPage() {
     queryFn: () => listTags({ limit: 500 }),
   });
 
-  const families = useMemo(() => {
-    const names = new Set(DEFAULT_FAMILIES);
-    tags.forEach((tag) => {
-      if (tag.category) names.add(tag.category);
-      if (!tag.category && !tag.parent_id) names.add("未分类");
-    });
-    return Array.from(names);
-  }, [tags]);
+  const { families, addFamily } = useTagFamilies(tags);
 
   const rootTags = useMemo(
     () =>
@@ -125,6 +118,34 @@ export default function TagsPage() {
               </button>
             ))}
           </div>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const family = addFamily(newFamilyName);
+              if (family) {
+                setActiveFamily(family);
+                setActiveParentId(null);
+                setNewMode("root");
+                setNewFamilyName("");
+              }
+            }}
+            className="border-t border-white/[0.06] p-2"
+          >
+            <input
+              value={newFamilyName}
+              onChange={(event) => setNewFamilyName(event.target.value)}
+              placeholder="新建一级主题"
+              className="mb-2 h-8 w-full rounded-lg border border-white/8 bg-white/[0.04] px-2.5 text-xs text-white/70 outline-none placeholder:text-white/24 focus:border-violet-300/30"
+            />
+            <button
+              type="submit"
+              disabled={!newFamilyName.trim()}
+              className="flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-white/10 text-xs text-white/56 transition-colors hover:border-violet-300/24 hover:text-violet-100 disabled:opacity-30"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              添加一级
+            </button>
+          </form>
         </SurfaceCard>
 
         <SurfaceCard className="flex min-h-0 flex-col overflow-hidden p-0">

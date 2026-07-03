@@ -7,6 +7,7 @@ import { Check, ChevronRight, Loader2, Plus, Search, Tag, X } from "lucide-react
 import { api } from "../../lib/api";
 import { createTag, listTags, type TagOut } from "../../lib/api/tags";
 import { cn } from "../../lib/utils";
+import { DEFAULT_TAG_FAMILIES, useTagFamilies } from "../../hooks/useTagFamilies";
 
 interface AssetTagWorkbenchProps {
   assetId: number;
@@ -14,15 +15,14 @@ interface AssetTagWorkbenchProps {
   onAssetUpdated: (asset: unknown) => void;
 }
 
-const DEFAULT_FAMILIES = ["场景", "人群", "情绪", "卖点", "画面元素", "脚本结构", "平台", "品类"];
-
 export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: AssetTagWorkbenchProps) {
   const qc = useQueryClient();
-  const [activeFamily, setActiveFamily] = useState<string>("场景");
+  const [activeFamily, setActiveFamily] = useState<string>(DEFAULT_TAG_FAMILIES[0]);
   const [activeParentId, setActiveParentId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [newName, setNewName] = useState("");
-  const [createMode, setCreateMode] = useState<"family" | "child">("family");
+  const [newFamilyName, setNewFamilyName] = useState("");
+  const [createMode, setCreateMode] = useState<"familyRoot" | "root" | "child">("root");
 
   const selected = useMemo(() => new Set(selectedTags.map(normalizeTag)), [selectedTags]);
   const { data: tags = [], isLoading } = useQuery({
@@ -30,14 +30,7 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
     queryFn: () => listTags({ limit: 500 }),
   });
 
-  const families = useMemo(() => {
-    const names = new Set(DEFAULT_FAMILIES);
-    tags.forEach((tag) => {
-      if (tag.category) names.add(tag.category);
-      if (!tag.parent_id && !tag.category) names.add("未分类");
-    });
-    return Array.from(names);
-  }, [tags]);
+  const { families, addFamily } = useTagFamilies(tags);
 
   const rootTags = useMemo(
     () =>
@@ -156,7 +149,7 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
               onClick={() => {
                 setActiveFamily(family);
                 setActiveParentId(null);
-                setCreateMode("family");
+                setCreateMode("root");
               }}
             />
           ))}
@@ -164,7 +157,7 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
 
         <TagColumn
           title="二级标签"
-          action={<AddButton onClick={() => setCreateMode("family")} active={createMode === "family"} />}
+          action={<AddButton onClick={() => setCreateMode("root")} active={createMode === "root"} />}
         >
           {isLoading && <div className="px-2 py-4 text-xs text-white/30">加载中...</div>}
           {!isLoading && rootTags.length === 0 && <EmptyColumn label="暂无二级标签" />}
@@ -222,6 +215,34 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
         >
           {createMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
           新建并添加
+        </button>
+      </form>
+
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          const family = addFamily(newFamilyName);
+          if (family) {
+            setActiveFamily(family);
+            setActiveParentId(null);
+            setCreateMode("root");
+            setNewFamilyName("");
+          }
+        }}
+        className="mt-2 flex gap-2"
+      >
+        <input
+          value={newFamilyName}
+          onChange={(event) => setNewFamilyName(event.target.value)}
+          placeholder="自定义一级主题，例如：素材状态"
+          className="h-8 min-w-0 flex-1 rounded-lg border border-white/8 bg-black/12 px-3 text-xs text-white/62 outline-none placeholder:text-white/22 focus:border-violet-300/30"
+        />
+        <button
+          type="submit"
+          disabled={!newFamilyName.trim()}
+          className="h-8 rounded-lg border border-white/10 px-3 text-xs text-white/56 transition-colors hover:border-violet-300/24 hover:text-violet-100 disabled:opacity-30"
+        >
+          新建一级
         </button>
       </form>
     </section>
