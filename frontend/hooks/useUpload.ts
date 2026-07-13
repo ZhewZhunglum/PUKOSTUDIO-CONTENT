@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { api } from "../lib/api";
 import { initUpload, uploadToStorage, completeUpload } from "../lib/api/assets";
 import { guessAssetType } from "../lib/types/asset";
 
@@ -44,7 +45,7 @@ export function useUpload() {
   }, []);
 
   const uploadFile = useCallback(
-    async (file: File) => {
+    async (file: File, tags: string[] = []) => {
       const id = crypto.randomUUID();
       const entry: UploadFile = { id, file, status: "idle", progress: 0, phase: "" };
       setUploads((prev) => [...prev, entry]);
@@ -64,6 +65,16 @@ export function useUpload() {
         );
 
         if (init.is_duplicate && init.asset_id) {
+          if (tags.length > 0) {
+            // Dedup hit skips upload/complete — attach the chosen tags to the
+            // existing asset. A tag failure shouldn't fail the whole item:
+            // the asset is already in the library.
+            try {
+              await api.patch(`/api/assets/${init.asset_id}`, { user_tags_add: tags });
+            } catch (err) {
+              console.warn("attaching tags to duplicate asset failed", err);
+            }
+          }
           updateFile(id, { status: "duplicate", progress: 100, phase: "done", assetId: init.asset_id });
           queryClient.invalidateQueries({ queryKey: ["assets"] });
           return;
@@ -115,6 +126,7 @@ export function useUpload() {
             file_size: file.size,
             asset_type: assetType,
             name: file.name.replace(/\.[^.]+$/, ""),
+            tags,
           })
         );
 
@@ -129,8 +141,8 @@ export function useUpload() {
   );
 
   const enqueueFiles = useCallback(
-    (files: FileList | File[]) => {
-      Array.from(files).forEach(uploadFile);
+    (files: FileList | File[], tags: string[] = []) => {
+      Array.from(files).forEach((file) => uploadFile(file, tags));
     },
     [uploadFile]
   );

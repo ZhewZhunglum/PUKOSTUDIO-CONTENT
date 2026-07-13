@@ -4,14 +4,13 @@ from typing import Any
 from sqlalchemy import Select, and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.storage import storage
 from app.core.task_utils import enqueue_task
 from app.core.utils import utcnow
 from app.modules.asset.models import Asset
 from app.modules.asset.schemas import (
     AssetCreate,
-    AssetFacetTag,
     AssetFacetsResponse,
+    AssetFacetTag,
     AssetListItem,
     AssetListRequest,
     AssetListResponse,
@@ -25,7 +24,9 @@ from app.modules.asset.schemas import (
 )
 
 
-async def create_asset(db: AsyncSession, data: AssetCreate) -> Asset:
+async def create_asset(
+    db: AsyncSession, data: AssetCreate, tags: list[str] | None = None
+) -> Asset:
     now = utcnow()
     asset = Asset(
         uuid=str(uuid.uuid4()),
@@ -57,6 +58,10 @@ async def create_asset(db: AsyncSession, data: AssetCreate) -> Asset:
     )
     db.add(asset)
     await db.flush()
+    if tags:
+        from app.modules.tag import service as tag_service
+
+        await tag_service.add_tags_to_asset(db, asset.id, tags, source=1)
     await db.refresh(asset)
     return asset
 
@@ -433,9 +438,29 @@ async def bulk_ai_tag(db: AsyncSession, req: BulkAITagRequest) -> BulkAITagRespo
     )
 
 
-async def enrich_with_cdn_url(asset: Asset) -> None:
-    if asset.thumbnail_key:
-        asset.cdn_url = storage.public_url(asset.thumbnail_key)
+async def backfill_thumbnails(db: AsyncSession, limit: int = 500) -> tuple[int, int]:
+    """Enqueue thumbnail generation for image/video assets without a cover.
+
+    Returns (queued, remaining) — remaining is how many are still missing a
+    cover beyond this batch, so callers can tell the job isn't finished.
+    """
+    missing = (
+        select(Asset.id)
+        .where(
+            Asset.asset_type.in_((1, 2)),
+            Asset.thumbnail_key.is_(None),
+            Asset.is_deleted.is_(False),
+        )
+    )
+    total = (
+        await db.execute(select(func.count()).select_from(missing.subquery()))
+    ).scalar_one()
+
+    result = await db.execute(missing.order_by(Asset.id).limit(limit))
+    asset_ids = list(result.scalars().all())
+    for asset_id in asset_ids:
+        await enqueue_task("generate_thumbnail", {"asset_id": asset_id}, priority=3)
+    return len(asset_ids), max(0, total - len(asset_ids))
 
 
 def _normalize_tag_list(tags: list[str]) -> list[str]:

@@ -1,4 +1,5 @@
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.utils import utcnow
@@ -97,6 +98,24 @@ async def delete_tag(db: AsyncSession, tag_id: int) -> bool:
     tag = await get_tag(db, tag_id)
     if not tag or tag.is_system:
         return False
+
+    # Unlink every asset, then strip the deleted name from the denormalized
+    # user_tags arrays in one set-based UPDATE (no per-asset loop).
+    affected_result = await db.execute(
+        select(AssetTag.asset_id).where(AssetTag.tag_id == tag_id)
+    )
+    affected_asset_ids = list(affected_result.scalars().all())
+
+    await db.execute(delete(AssetTag).where(AssetTag.tag_id == tag_id))
+    if affected_asset_ids:
+        await db.execute(
+            update(Asset)
+            .where(Asset.id.in_(affected_asset_ids))
+            .values(
+                user_tags=func.array_remove(Asset.user_tags, tag.name),
+                updated_at=utcnow(),
+            )
+        )
     await db.delete(tag)
     await db.flush()
     return True
@@ -112,19 +131,18 @@ async def add_tags_to_asset(
         await _sync_asset_user_tags(db, asset_id)
         return []
 
+    # Upsert so concurrent requests creating the same new tag (e.g. a batch
+    # upload with shared tags) don't race the unique(name) constraint.
+    now = utcnow()
+    await db.execute(
+        pg_insert(Tag)
+        .values([{"name": name, "created_at": now} for name in normalized_names])
+        .on_conflict_do_nothing(index_elements=["name"])
+    )
     existing_result = await db.execute(select(Tag).where(Tag.name.in_(normalized_names)))
     tags_by_name = {tag.name: tag for tag in existing_result.scalars().all()}
 
-    for name in normalized_names:
-        if name in tags_by_name:
-            continue
-        tag = Tag(name=name, created_at=utcnow())
-        db.add(tag)
-        tags_by_name[name] = tag
-
-    await db.flush()
-
-    tags = [tags_by_name[name] for name in normalized_names]
+    tags = [tags_by_name[name] for name in normalized_names if name in tags_by_name]
     tag_ids = [tag.id for tag in tags]
     linked_result = await db.execute(
         select(AssetTag.tag_id).where(

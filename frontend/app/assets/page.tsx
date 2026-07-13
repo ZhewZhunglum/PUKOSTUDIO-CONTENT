@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { AssetGrid } from "../../components/assets/AssetGrid";
+import { BackfillCoversButton } from "../../components/assets/BackfillCoversButton";
 import { BulkActionBar } from "../../components/assets/BulkActionBar";
 import { AICollectDialog } from "../../components/collections/AICollectDialog";
 import { getAssetFacets, searchAssets } from "../../lib/api/assets";
@@ -487,6 +488,7 @@ function LibraryHeader({
         </div>
 
         <div style={{ display: "flex", gap: 8 }}>
+          <BackfillCoversButton />
           <button
             onClick={onAICollect}
             style={{

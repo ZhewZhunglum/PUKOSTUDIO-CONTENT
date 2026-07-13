@@ -5,7 +5,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -15,9 +14,9 @@ from app.core.storage import storage
 from app.core.task_utils import enqueue_task, get_task_status
 from app.modules.asset import service
 from app.modules.asset.schemas import (
+    AssetFacetsResponse,
     AssetListRequest,
     AssetListResponse,
-    AssetFacetsResponse,
     AssetOut,
     AssetSearchRequest,
     AssetUpdate,
@@ -87,10 +86,10 @@ async def upload_complete(req: UploadCompleteRequest, db: DbSession) -> AssetOut
         file_md5=req.file_md5,
         file_format=os.path.splitext(req.filename)[1].lstrip(".").lower() or None,
     )
-    asset = await service.create_asset(db, create_data)
+    asset = await service.create_asset(db, create_data, tags=req.tags)
     await db.commit()
 
-    if asset.asset_type == 2:
+    if asset.asset_type in (1, 2):
         await enqueue_task("generate_thumbnail", {"asset_id": asset.id})
     if settings.auto_ai_tag_on_ingest and asset.asset_type in (1, 2):
         await enqueue_task("ai_tag", {"asset_id": asset.id, "quality": "bulk_local"})
@@ -98,6 +97,23 @@ async def upload_complete(req: UploadCompleteRequest, db: DbSession) -> AssetOut
         await enqueue_task("embed_visual", {"asset_id": asset.id})
 
     return AssetOut.model_validate(asset)
+
+
+class ThumbnailBackfillResponse(BaseModel):
+    queued: int
+    remaining: int
+    message: str
+
+
+@router.post("/thumbnails/backfill", response_model=ThumbnailBackfillResponse)
+async def backfill_thumbnails(db: DbSession) -> ThumbnailBackfillResponse:
+    """Enqueue cover generation for existing assets that are missing one."""
+    queued, remaining = await service.backfill_thumbnails(db)
+    return ThumbnailBackfillResponse(
+        queued=queued,
+        remaining=remaining,
+        message=f"Enqueued {queued} thumbnail tasks ({remaining} remaining)",
+    )
 
 
 # ── URL Import ────────────────────────────────────────────────────────────────

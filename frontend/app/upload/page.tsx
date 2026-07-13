@@ -5,10 +5,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import {
   Trash2, Upload as UploadIcon, Link2, CheckCircle2, XCircle,
-  Loader2, ExternalLink, X, Plus, Tag, RotateCcw, ArrowRight,
+  Loader2, ExternalLink, RotateCcw, ArrowRight,
 } from "lucide-react";
 import { useUpload } from "../../hooks/useUpload";
 import { DropZone } from "../../components/upload/DropZone";
+import { TagChipInput } from "../../components/upload/TagChipInput";
 import { UploadItem } from "../../components/upload/UploadItem";
 import { SectionHeader } from "../../components/ui/SectionHeader";
 import { SurfaceCard } from "../../components/ui/SurfaceCard";
@@ -83,12 +84,10 @@ const TASK_STORAGE_KEY = "contentforge.importUrlTasks.v1";
 
 function UrlImportPanel() {
   const [input, setInput] = useState("");
-  const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tasks, setTasks] = useState<ImportTask[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const tagInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const { data: capabilities } = useQuery({
@@ -111,28 +110,6 @@ function UrlImportPanel() {
   useEffect(() => {
     window.localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(tasks.slice(0, 200)));
   }, [tasks]);
-
-  function addTag() {
-    const trimmed = tagInput.trim();
-    if (trimmed && !tags.includes(trimmed)) {
-      setTags((prev) => [...prev, trimmed]);
-    }
-    setTagInput("");
-    tagInputRef.current?.focus();
-  }
-
-  function removeTag(t: string) {
-    setTags((prev) => prev.filter((x) => x !== t));
-  }
-
-  function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addTag();
-    } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
-      setTags((prev) => prev.slice(0, -1));
-    }
-  }
 
   async function handleSubmit() {
     const parsed = parseImportInput(input, tags);
@@ -266,47 +243,7 @@ function UrlImportPanel() {
         </p>
       </div>
 
-      <div>
-        <label className="mb-1.5 block text-xs font-medium text-white/40 flex items-center gap-1.5">
-          <Tag className="h-3 w-3" /> 追加到本批的标签
-          <span className="text-white/20">（回车或逗号添加）</span>
-        </label>
-        <div className="flex flex-wrap gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 focus-within:ring-1 focus-within:ring-violet-500/50 min-h-[42px]">
-          {tags.map((t) => (
-            <span
-              key={t}
-              className="flex items-center gap-1 rounded-full bg-violet-500/20 px-2.5 py-0.5 text-xs text-violet-300"
-            >
-              {t}
-              <button
-                type="button"
-                onClick={() => removeTag(t)}
-                className="hover:text-violet-100 transition-colors"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
-          <input
-            ref={tagInputRef}
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleTagKeyDown}
-            onBlur={() => tagInput.trim() && addTag()}
-            placeholder={tags.length === 0 ? "输入标签…" : ""}
-            className="flex-1 min-w-[80px] bg-transparent text-sm text-white/70 outline-none placeholder:text-white/20"
-          />
-          {tagInput.trim() && (
-            <button
-              type="button"
-              onClick={addTag}
-              className="flex items-center gap-0.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-white/40 hover:text-white/60 transition-colors"
-            >
-              <Plus className="h-3 w-3" /> 添加
-            </button>
-          )}
-        </div>
-      </div>
+      <TagChipInput tags={tags} onChange={setTags} />
 
       {/* Error */}
       {error && (
@@ -517,6 +454,7 @@ type Tab = "local" | "url";
 
 export default function UploadPage() {
   const [tab, setTab] = useState<Tab>("local");
+  const [localTags, setLocalTags] = useState<string[]>([]);
   const { uploads, enqueueFiles, removeUpload, clearDone } = useUpload();
   const queryClient = useQueryClient();
   const refreshedAssetIds = useRef<Set<number>>(new Set());
@@ -529,7 +467,7 @@ export default function UploadPage() {
     uploads.every((u) => u.status === "done" || u.status === "duplicate" || u.status === "error");
 
   function handleFiles(files: FileList) {
-    enqueueFiles(files);
+    enqueueFiles(files, localTags);
   }
 
   useEffect(() => {
@@ -589,6 +527,11 @@ export default function UploadPage() {
       {/* Local upload tab */}
       {tab === "local" && (
         <>
+          <TagChipInput
+            tags={localTags}
+            onChange={setLocalTags}
+            label="上传时附加的标签（对本批所有文件生效）"
+          />
           <DropZone onFiles={handleFiles} accept="image/*,video/*,audio/*" />
 
           {uploads.length > 0 && (
