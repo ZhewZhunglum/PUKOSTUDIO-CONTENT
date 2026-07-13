@@ -94,6 +94,7 @@ export interface UploadCompleteRequest {
   file_md5?: string;
   asset_type: number;
   name?: string;
+  tags?: string[];
 }
 
 export const ASSET_TYPE_MAP: Record<number, string> = {

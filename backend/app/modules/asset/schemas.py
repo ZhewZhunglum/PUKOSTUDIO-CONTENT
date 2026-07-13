@@ -1,8 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, computed_field
 
 from app.core.storage import storage
 
@@ -168,6 +168,10 @@ class UploadCompleteRequest(BaseModel):
     file_md5: str | None = None
     asset_type: int = Field(ge=1, le=11)
     name: str | None = None
+    # Tag.name is String(64) in the DB — reject oversize names at the boundary.
+    tags: list[Annotated[str, StringConstraints(max_length=64)]] = Field(
+        default_factory=list, max_length=20
+    )
 
 
 class AssetListRequest(BaseModel):
