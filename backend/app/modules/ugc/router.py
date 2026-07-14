@@ -10,12 +10,12 @@ import csv
 import io
 import re
 import uuid
-from datetime import date, timedelta, datetime, timezone
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from pydantic import BaseModel, Field
-from sqlalchemy import and_, asc, case, delete, desc, func, or_, select, text
+from pydantic import BaseModel
+from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -24,14 +24,11 @@ from app.core.database import get_db
 from app.modules.ugc.deps import get_team_id
 from app.modules.ugc.models import (
     AIDraftStatus,
-    CampaignInfluencerStatus,
     CampaignStatus,
     CampaignType,
     EmailDirection,
-    EmailStatus,
     InfluencerStatus,
     PlatformType,
-    TemplateCategory,
     UGCAIDraft,
     UGCCampaign,
     UGCCampaignInfluencer,
@@ -43,7 +40,6 @@ from app.modules.ugc.models import (
     UGCInfluencer,
     UGCInfluencerPlatform,
     UGCTag,
-    ugc_influencer_tags,
 )
 
 router = APIRouter(prefix="/api/ugc", tags=["ugc"])
@@ -452,7 +448,7 @@ async def crm_action(
     if data.action in STATUS_MAP:
         inf.status = STATUS_MAP[data.action]
     if data.note:
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        ts = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
         entry = f"[{ts}] {data.note}"
         inf.notes = f"{inf.notes}\n{entry}" if inf.notes else entry
     await db.commit()
@@ -538,7 +534,10 @@ async def export_influencers(
     )).scalars().all()
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["name", "email", "niche", "country", "status", "source", "platform", "username", "followers", "engagement_rate"])
+    w.writerow([
+        "name", "email", "niche", "country", "status", "source",
+        "platform", "username", "followers", "engagement_rate",
+    ])
     for r in rows:
         p = r.platforms[0] if r.platforms else None
         w.writerow([r.name, r.email, r.niche, r.country, r.status, r.source,
@@ -695,7 +694,7 @@ async def start_campaign(
     if not c.influencers:
         raise HTTPException(400, "No influencers enrolled")
     c.status = CampaignStatus.active
-    c.started_at = datetime.now(timezone.utc)
+    c.started_at = datetime.now(UTC)
     await db.commit()
     return {"status": "active"}
 
@@ -745,7 +744,7 @@ async def enroll_influencers(
         if not existing:
             db.add(UGCCampaignInfluencer(
                 campaign_id=campaign_id, influencer_id=inf_id,
-                enrolled_at=datetime.now(timezone.utc),
+                enrolled_at=datetime.now(UTC),
             ))
             enrolled += 1
     await db.commit()

@@ -112,11 +112,11 @@ async def health_check() -> dict[str, str]:
     return status
 
 
-from app.modules.auth.router import router as auth_router
 from app.modules.ai.router import router as ai_router
 from app.modules.analyzer.router import router as analyzer_router
 from app.modules.asset.router import router as asset_router
 from app.modules.asset.search_router import router as search_router
+from app.modules.auth.router import router as auth_router
 from app.modules.brand.router import router as brand_router
 from app.modules.collection.router import router as collection_router
 from app.modules.pipeline.router import router as pipeline_router
@@ -152,6 +152,7 @@ app.include_router(video_router, prefix="/api", dependencies=_jwt)
 
 
 from app.modules.settings.router import router as settings_router
+
 app.include_router(settings_router, dependencies=_jwt)
 
 @app.get("/", tags=["system"])

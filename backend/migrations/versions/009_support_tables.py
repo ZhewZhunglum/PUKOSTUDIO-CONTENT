@@ -85,7 +85,7 @@ def upgrade() -> None:
 
     # ── Seed builtin templates ──────────────────────────────────────────────
     import json
-    from datetime import datetime, UTC
+    from datetime import UTC, datetime
     _now = datetime.now(UTC)
     tmpl_table = sa.table(
         "template",

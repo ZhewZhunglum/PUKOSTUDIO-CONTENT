@@ -1,5 +1,5 @@
 """JWT authentication utilities for ContentForge."""
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import jwt
@@ -27,7 +27,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def create_access_token(username: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(days=_EXPIRE_DAYS)
+    expire = datetime.now(UTC) + timedelta(days=_EXPIRE_DAYS)
     return jwt.encode(
         {"sub": username, "exp": expire},
         settings.secret_key,
@@ -52,14 +52,15 @@ def verify_token(
             raise ValueError("missing sub")
         return username
     except jwt.ExpiredSignatureError:
+        # `from None`: the JWT error chain is internal detail, not client-facing.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token expired",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from None
     except (jwt.InvalidTokenError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from None

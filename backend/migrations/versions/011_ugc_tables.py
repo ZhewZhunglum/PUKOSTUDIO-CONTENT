@@ -4,8 +4,8 @@ Revision ID: 011_ugc_tables
 Revises: 010_production
 Create Date: 2026-06-02
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "011_ugc_tables"

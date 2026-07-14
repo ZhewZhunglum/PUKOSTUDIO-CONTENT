@@ -10,14 +10,23 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, Enum, Float, ForeignKey,
-    Index, Integer, String, Table, Text, UniqueConstraint,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Table,
+    Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-
 
 # ── Junction table ────────────────────────────────────────────────────────────
 
@@ -31,7 +40,7 @@ ugc_influencer_tags = Table(
 
 # ── Enums ─────────────────────────────────────────────────────────────────────
 
-class InfluencerStatus(str, enum.Enum):
+class InfluencerStatus(enum.StrEnum):
     new = "new"
     contacted = "contacted"
     replied = "replied"
@@ -41,13 +50,13 @@ class InfluencerStatus(str, enum.Enum):
     blacklisted = "blacklisted"
 
 
-class PlatformType(str, enum.Enum):
+class PlatformType(enum.StrEnum):
     tiktok = "tiktok"
     instagram = "instagram"
     youtube = "youtube"
 
 
-class CampaignStatus(str, enum.Enum):
+class CampaignStatus(enum.StrEnum):
     draft = "draft"
     active = "active"
     paused = "paused"
@@ -55,13 +64,13 @@ class CampaignStatus(str, enum.Enum):
     archived = "archived"
 
 
-class CampaignType(str, enum.Enum):
+class CampaignType(enum.StrEnum):
     ugc = "ugc"
     brand_promo = "brand_promo"
     tiktok_shop = "tiktok_shop"
 
 
-class CampaignInfluencerStatus(str, enum.Enum):
+class CampaignInfluencerStatus(enum.StrEnum):
     queued = "queued"
     in_progress = "in_progress"
     replied = "replied"
@@ -70,7 +79,7 @@ class CampaignInfluencerStatus(str, enum.Enum):
     bounced = "bounced"
 
 
-class TemplateCategory(str, enum.Enum):
+class TemplateCategory(enum.StrEnum):
     initial_outreach = "initial_outreach"
     followup_1 = "followup_1"
     followup_2 = "followup_2"
@@ -78,18 +87,18 @@ class TemplateCategory(str, enum.Enum):
     custom = "custom"
 
 
-class EmailProviderType(str, enum.Enum):
+class EmailProviderType(enum.StrEnum):
     ses = "ses"
     sendgrid = "sendgrid"
     smtp = "smtp"
 
 
-class EmailDirection(str, enum.Enum):
+class EmailDirection(enum.StrEnum):
     outbound = "outbound"
     inbound = "inbound"
 
 
-class EmailStatus(str, enum.Enum):
+class EmailStatus(enum.StrEnum):
     queued = "queued"
     sent = "sent"
     delivered = "delivered"
@@ -100,7 +109,7 @@ class EmailStatus(str, enum.Enum):
     received = "received"
 
 
-class AIIntent(str, enum.Enum):
+class AIIntent(enum.StrEnum):
     interested = "interested"
     not_interested = "not_interested"
     question = "question"
@@ -109,7 +118,7 @@ class AIIntent(str, enum.Enum):
     unknown = "unknown"
 
 
-class AIDraftStatus(str, enum.Enum):
+class AIDraftStatus(enum.StrEnum):
     pending = "pending"
     approved = "approved"
     rejected = "rejected"

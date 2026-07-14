@@ -7,7 +7,6 @@ exposing the full value.
 from __future__ import annotations
 
 import asyncio
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -21,12 +20,18 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 # ── Key registry ──────────────────────────────────────────────────────────────
 # Maps display_key → env var name / DB settings key
 _KEY_REGISTRY: list[dict[str, str]] = [
-    {"key": "api_key_anthropic",  "label": "Anthropic (Claude)",             "env": "ANTHROPIC_API_KEY",    "capability": "text · vision"},
-    {"key": "api_key_openai",     "label": "OpenAI (GPT Image / TTS / ASR)", "env": "OPENAI_API_KEY",       "capability": "image · tts · asr · embedding"},
-    {"key": "api_key_replicate",  "label": "Replicate (Seedance Video)",     "env": "REPLICATE_API_TOKEN",  "capability": "video_gen"},
-    {"key": "api_key_elevenlabs", "label": "ElevenLabs (TTS v3)",            "env": "ELEVENLABS_API_KEY",   "capability": "tts"},
-    {"key": "api_key_together",   "label": "Together AI (Bulk LLM)",         "env": "TOGETHER_API_KEY",     "capability": "bulk_text"},
-    {"key": "api_key_google",     "label": "Google (Veo 3)",                 "env": "GOOGLE_API_KEY",       "capability": "video_gen_premium"},
+    {"key": "api_key_anthropic", "label": "Anthropic (Claude)",
+     "env": "ANTHROPIC_API_KEY", "capability": "text · vision"},
+    {"key": "api_key_openai", "label": "OpenAI (GPT Image / TTS / ASR)",
+     "env": "OPENAI_API_KEY", "capability": "image · tts · asr · embedding"},
+    {"key": "api_key_replicate", "label": "Replicate (Seedance Video)",
+     "env": "REPLICATE_API_TOKEN", "capability": "video_gen"},
+    {"key": "api_key_elevenlabs", "label": "ElevenLabs (TTS v3)",
+     "env": "ELEVENLABS_API_KEY", "capability": "tts"},
+    {"key": "api_key_together", "label": "Together AI (Bulk LLM)",
+     "env": "TOGETHER_API_KEY", "capability": "bulk_text"},
+    {"key": "api_key_google", "label": "Google (Veo 3)",
+     "env": "GOOGLE_API_KEY", "capability": "video_gen_premium"},
 ]
 
 # ── In-memory cache (refreshed on write) ──────────────────────────────────────
@@ -189,6 +194,7 @@ class TestResult(BaseModel):
 async def test_ai_key(key: str, db: AsyncSession = Depends(get_db)) -> TestResult:
     """Send a minimal real request to verify an API key actually works."""
     import time
+
     import httpx
 
     entry = next((r for r in _KEY_REGISTRY if r["key"] == key), None)
