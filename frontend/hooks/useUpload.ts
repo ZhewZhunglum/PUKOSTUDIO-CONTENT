@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import SparkMD5 from "spark-md5";
 import { api } from "../lib/api";
 import { initUpload, uploadToStorage, completeUpload } from "../lib/api/assets";
 import { guessAssetType } from "../lib/types/asset";
@@ -19,6 +20,23 @@ export interface UploadFile {
 
 async function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// Hash in 4MB slices so large videos don't need a single contiguous buffer.
+const MD5_CHUNK_SIZE = 4 * 1024 * 1024;
+
+async function computeFileMd5(file: File): Promise<string | undefined> {
+  try {
+    const spark = new SparkMD5.ArrayBuffer();
+    for (let offset = 0; offset < file.size; offset += MD5_CHUNK_SIZE) {
+      const buffer = await file.slice(offset, offset + MD5_CHUNK_SIZE).arrayBuffer();
+      spark.append(buffer);
+    }
+    return spark.end();
+  } catch {
+    // Hashing is an optimization (dedup) — never block the upload on it.
+    return undefined;
+  }
 }
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
@@ -53,7 +71,12 @@ export function useUpload() {
       try {
         const mimeType = file.type || "application/octet-stream";
         const assetType = guessAssetType(mimeType);
-        updateFile(id, { status: "uploading", progress: 5, phase: "init" });
+        updateFile(id, { status: "uploading", progress: 2, phase: "init" });
+
+        // MD5 enables server-side dedup: an already-imported file short-circuits
+        // to the existing asset without re-uploading a byte.
+        const fileMd5 = await computeFileMd5(file);
+        updateFile(id, { progress: 5 });
 
         const init = await withRetry(() =>
           initUpload({
@@ -61,6 +84,7 @@ export function useUpload() {
             file_size: file.size,
             mime_type: mimeType,
             asset_type: assetType,
+            file_md5: fileMd5,
           })
         );
 
@@ -97,6 +121,7 @@ export function useUpload() {
             // Refresh presigned URL on 403 and retry once
             if (attempt === 0 && msg.includes("403")) {
               attempt++;
+              // Re-init WITHOUT md5: a dedup hit here would return no upload_url.
               const reinit = await initUpload({
                 filename: file.name,
                 file_size: file.size,
@@ -124,6 +149,7 @@ export function useUpload() {
             filename: file.name,
             mime_type: mimeType,
             file_size: file.size,
+            file_md5: fileMd5,
             asset_type: assetType,
             name: file.name.replace(/\.[^.]+$/, ""),
             tags,
