@@ -4,8 +4,8 @@ Revision ID: 013_user_admin_flag
 Revises: 012_users_table
 Create Date: 2026-07-02
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "013_user_admin_flag"

@@ -4,8 +4,8 @@ Revision ID: 012_users_table
 Revises: 011_ugc_tables
 Create Date: 2026-06-05
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "012_users_table"

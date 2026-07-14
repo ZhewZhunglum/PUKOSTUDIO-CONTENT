@@ -70,8 +70,6 @@ line-length = 120
 select = ["E", "F", "I", "UP", "B", "S", "ANN"]
 ignore = [
   "B008",    # FastAPI Depends() in default args — intentional pattern
-  "ANN101",  # self type annotation — removed in ruff
-  "ANN102",  # cls type annotation — removed in ruff
   "S101",    # assert in tests is fine
   "ANN201",  # return type on public methods — enforce gradually
   "ANN202",  # return type on private methods
@@ -85,4 +83,5 @@ ignore = [
 "tests/*" = ["S", "ANN"]
 "app/main.py" = ["E402"]  # routers imported after app creation to avoid circular imports
 "app/core/config.py" = ["S105"]  # dev-default placeholder values, not real secrets
+"migrations/*" = ["E501"]  # generated DDL/SQL strings — applied history, don't reflow
 "app/modules/asset/search.py" = ["S608"]  # f-string uses _SELECT_COLS constant, not user input
