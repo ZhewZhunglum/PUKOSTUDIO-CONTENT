@@ -22,6 +22,19 @@ async function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// crypto.randomUUID is only available in secure contexts (HTTPS/localhost);
+// this site is served over plain HTTP, so fall back to a manual UUIDv4.
+function randomId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 // Hash in 4MB slices so large videos don't need a single contiguous buffer.
 const MD5_CHUNK_SIZE = 4 * 1024 * 1024;
 
@@ -64,7 +77,7 @@ export function useUpload() {
 
   const uploadFile = useCallback(
     async (file: File, tags: string[] = []) => {
-      const id = crypto.randomUUID();
+      const id = randomId();
       const entry: UploadFile = { id, file, status: "idle", progress: 0, phase: "" };
       setUploads((prev) => [...prev, entry]);
 
