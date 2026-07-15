@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { listTemplates, createTemplate, deleteTemplate, markTemplateUsed, type Template } from "../../lib/api/templates";
 import { SOCIAL_PLATFORMS, platformLabel } from "../../lib/platforms";
+import { copyText } from "../../lib/clipboard";
 
 export default function TemplatesPage() {
   const qc = useQueryClient();
@@ -70,14 +71,14 @@ export default function TemplatesPage() {
 
   async function copyHooks(template: Template) {
     const text = template.hooks.map((h, i) => `${i + 1}. ${h}`).join("\n");
-    await navigator.clipboard.writeText(text);
+    await copyText(text);
     setCopied(`hooks-${template.id}`);
     setTimeout(() => setCopied(null), 1500);
   }
 
   async function copyOutline(template: Template) {
     const text = template.outline.join("\n");
-    await navigator.clipboard.writeText(text);
+    await copyText(text);
     setCopied(`outline-${template.id}`);
     setTimeout(() => setCopied(null), 1500);
   }

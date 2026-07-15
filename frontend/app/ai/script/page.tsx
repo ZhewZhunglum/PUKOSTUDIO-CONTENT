@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Sparkles, Copy, Check, ExternalLink } from "lucide-react";
 import { generateScript, type ScriptGenResponse } from "../../../lib/api/ai";
 import { cn } from "../../../lib/utils";
+import { copyText } from "../../../lib/clipboard";
 import { SectionHeader } from "../../../components/ui/SectionHeader";
 import { SurfaceCard } from "../../../components/ui/SurfaceCard";
 import { SOCIAL_PLATFORMS } from "../../../lib/platforms";
@@ -40,7 +41,7 @@ export default function ScriptPage() {
   });
 
   async function handleCopy(text: string, key: string) {
-    await navigator.clipboard.writeText(text);
+    await copyText(text);
     setCopied(key);
     setTimeout(() => setCopied(null), 2000);
   }

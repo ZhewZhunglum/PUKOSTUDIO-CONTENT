@@ -7,6 +7,7 @@ import { api } from "../../../lib/api";
 import { SectionHeader } from "../../../components/ui/SectionHeader";
 import { SurfaceCard } from "../../../components/ui/SurfaceCard";
 import { cn } from "../../../lib/utils";
+import { copyText } from "../../../lib/clipboard";
 import { SOCIAL_PLATFORMS, platformLabel } from "../../../lib/platforms";
 
 type InputType = "description" | "url" | "transcript";
@@ -71,7 +72,7 @@ export default function AnalyzerPage() {
   });
 
   async function copyTip(tip: string, key: string) {
-    await navigator.clipboard.writeText(tip);
+    await copyText(tip);
     setCopied(key);
     setTimeout(() => setCopied(null), 1500);
   }

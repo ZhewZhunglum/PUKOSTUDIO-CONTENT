@@ -6,6 +6,7 @@ import {
   Calendar, Check, Clock, Copy, Eye, GitBranch, HardDrive, Image as ImageIcon,
 } from "lucide-react";
 import { SurfaceCard } from "../../ui/SurfaceCard";
+import { copyText } from "../../../lib/clipboard";
 import {
   formatDate, formatDuration, formatFileSize, SOURCE_LABEL,
   type AssetDetail, type AssetRelation,
@@ -119,7 +120,7 @@ export function AssetStorageCard({ storageKey }: { storageKey: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    await navigator.clipboard.writeText(storageKey);
+    await copyText(storageKey);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
