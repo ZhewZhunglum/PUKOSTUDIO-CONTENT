@@ -189,8 +189,6 @@ async def generate_tts(req: TtsRequest, db: AsyncSession = Depends(get_db)):
 @router.post("/asr", response_model=AsrResponse)
 async def transcribe_audio(req: AsrRequest, db: AsyncSession = Depends(get_db)):
     """Transcribe audio asset with Whisper. Optionally generate SRT subtitle file."""
-    from sqlalchemy import update
-
     from app.core.ai_gateway.gateway import ai_gateway
     from app.core.ai_gateway.schemas import AIRequest
     from app.core.storage import storage
@@ -218,11 +216,7 @@ async def transcribe_audio(req: AsrRequest, db: AsyncSession = Depends(get_db)):
 
     text: str = response.outputs.get("text", "")
     segments: list = response.outputs.get("segments", [])
-    await db.execute(
-        update(Asset)
-        .where(Asset.id == asset.id)
-        .values(asr_text=text, asr_segments=segments)
-    )
+    await service.save_transcription(db, asset.id, text, segments)
 
     srt_content = None
     srt_asset_id = None

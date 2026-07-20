@@ -4,6 +4,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.utils import utcnow
+from app.modules.asset.models import Asset
 from app.modules.video.models import VideoClip, VideoProject
 from app.modules.video.schemas import (
     VideoClipCreate,
@@ -200,3 +201,12 @@ async def set_render_status(
         )
     )
     await db.flush()
+
+
+async def save_transcription(
+    db: AsyncSession, asset_id: int, text: str, segments: list
+) -> None:
+    """Persist ASR output onto the source asset (router must not write SQL directly)."""
+    await db.execute(
+        update(Asset).where(Asset.id == asset_id).values(asr_text=text, asr_segments=segments)
+    )
