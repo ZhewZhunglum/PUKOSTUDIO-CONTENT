@@ -3,14 +3,53 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 
-def test_enqueue_task_uses_asyncpg_safe_jsonb_cast() -> None:
+@pytest.mark.asyncio
+async def test_enqueue_tasks_uses_asyncpg_safe_jsonb_cast() -> None:
     from app.core import task_utils
 
-    source = task_utils.enqueue_task.__code__.co_consts
-    sql = next(item for item in source if isinstance(item, str) and "INSERT INTO task" in item)
+    captured_sql: list[str] = []
 
-    assert "CAST(:payload AS JSONB)" in sql
-    assert ":payload::jsonb" not in sql
+    class FakeResult:
+        def fetchall(self):
+            return [(1,), (2,)]
+
+    class FakeSession:
+        async def execute(self, clause, params):
+            captured_sql.append(str(clause))
+            return FakeResult()
+
+        async def commit(self):
+            pass
+
+    class SessionContext:
+        async def __aenter__(self):
+            return FakeSession()
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+    with patch(
+        "app.core.task_utils.async_session_factory", return_value=SessionContext()
+    ):
+        task_ids = await task_utils.enqueue_tasks("ai_tag", [{"asset_id": 1}, {"asset_id": 2}])
+
+    assert task_ids == [1, 2]
+    sql = captured_sql[0]
+    assert "INSERT INTO task" in sql
+    assert "CAST(:payload_0 AS JSONB)" in sql
+    assert "CAST(:payload_1 AS JSONB)" in sql
+    assert "::jsonb" not in sql
+
+
+@pytest.mark.asyncio
+async def test_enqueue_tasks_returns_empty_list_without_querying() -> None:
+    from app.core import task_utils
+
+    with patch("app.core.task_utils.async_session_factory") as mock_factory:
+        result = await task_utils.enqueue_tasks("ai_tag", [])
+
+    assert result == []
+    mock_factory.assert_not_called()
 
 
 @pytest.mark.asyncio

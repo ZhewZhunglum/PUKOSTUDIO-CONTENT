@@ -4,7 +4,7 @@ from typing import Any
 from sqlalchemy import Select, and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.task_utils import enqueue_task
+from app.core.task_utils import enqueue_tasks
 from app.core.utils import utcnow
 from app.modules.asset.models import Asset
 from app.modules.asset.schemas import (
@@ -423,18 +423,14 @@ async def bulk_ai_tag(db: AsyncSession, req: BulkAITagRequest) -> BulkAITagRespo
         result = await db.execute(q.limit(200))
         targets = list(result.scalars())
 
-    enqueued = 0
-    for asset in targets:
-        await enqueue_task(
-            "ai_tag",
-            {"asset_id": asset.id, "force": req.force, "quality": req.quality},
-            priority=3,
-        )
-        enqueued += 1
+    payloads = [
+        {"asset_id": asset.id, "force": req.force, "quality": req.quality} for asset in targets
+    ]
+    task_ids = await enqueue_tasks("ai_tag", payloads, priority=3)
 
     return BulkAITagResponse(
-        enqueued=enqueued,
-        message=f"Enqueued {enqueued} AI tagging tasks",
+        enqueued=len(task_ids),
+        message=f"Enqueued {len(task_ids)} AI tagging tasks",
     )
 
 
@@ -458,9 +454,9 @@ async def backfill_thumbnails(db: AsyncSession, limit: int = 500) -> tuple[int, 
 
     result = await db.execute(missing.order_by(Asset.id).limit(limit))
     asset_ids = list(result.scalars().all())
-    for asset_id in asset_ids:
-        await enqueue_task("generate_thumbnail", {"asset_id": asset_id}, priority=3)
-    return len(asset_ids), max(0, total - len(asset_ids))
+    payloads = [{"asset_id": asset_id} for asset_id in asset_ids]
+    task_ids = await enqueue_tasks("generate_thumbnail", payloads, priority=3)
+    return len(task_ids), max(0, total - len(task_ids))
 
 
 def _normalize_tag_list(tags: list[str]) -> list[str]:

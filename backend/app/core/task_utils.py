@@ -23,23 +23,46 @@ async def enqueue_task(
     priority: int = 5,
     max_retries: int = 3,
 ) -> int:
+    task_ids = await enqueue_tasks(task_type, [payload], priority=priority, max_retries=max_retries)
+    return task_ids[0]
+
+
+async def enqueue_tasks(
+    task_type: str,
+    payloads: list[dict[str, Any]],
+    priority: int = 5,
+    max_retries: int = 3,
+) -> list[int]:
+    """Insert many same-type tasks in a single statement.
+
+    Callers looping over hundreds of assets (bulk AI-tag, thumbnail backfill)
+    were opening one session/transaction per task; this collapses that into
+    one INSERT with multiple VALUES rows.
+    """
+    if not payloads:
+        return []
+
+    values_sql = ", ".join(
+        f"(:uuid_{i}, :type, CAST(:payload_{i} AS JSONB), 'pending', :priority, :max_retries, NOW())"
+        for i in range(len(payloads))
+    )
+    params: dict[str, Any] = {"type": task_type, "priority": priority, "max_retries": max_retries}
+    for i, payload in enumerate(payloads):
+        params[f"uuid_{i}"] = str(uuid.uuid4())
+        params[f"payload_{i}"] = json.dumps(payload)
+
     async with async_session_factory() as session:
-        result = await session.execute(
-            text("""
-                INSERT INTO task (uuid, type, payload, status, priority, max_retries, scheduled_at)
-                VALUES (:uuid, :type, CAST(:payload AS JSONB), 'pending', :priority, :max_retries, NOW())
-                RETURNING id
-            """),
-            {
-                "uuid": str(uuid.uuid4()),
-                "type": task_type,
-                "payload": json.dumps(payload),
-                "priority": priority,
-                "max_retries": max_retries,
-            },
+        # values_sql only ever interpolates the loop index into bind-parameter
+        # NAMES (:uuid_0, :payload_0, ...); every actual value (task_type,
+        # uuid, payload JSON) is passed through `params` as a bound parameter,
+        # never string-formatted into the SQL text.
+        sql = (
+            "INSERT INTO task (uuid, type, payload, status, priority, max_retries, scheduled_at) "  # noqa: S608
+            f"VALUES {values_sql} RETURNING id"
         )
+        result = await session.execute(text(sql), params)
         await session.commit()
-        return result.scalar_one()
+        return [row[0] for row in result.fetchall()]
 
 
 async def get_task_status(db: AsyncSession, task_id: int) -> TaskStatus | None:
