@@ -13,6 +13,7 @@ from app.core.platforms import detect_import_platform, import_platforms_payload
 from app.core.storage import storage
 from app.core.task_utils import enqueue_task, get_task_status
 from app.modules.asset import service
+from app.modules.asset.models import Asset
 from app.modules.asset.schemas import (
     AssetFacetsResponse,
     AssetListRequest,
@@ -175,7 +176,10 @@ class ImportUrlStatusResponse(BaseModel):
 @router.post("/import-url", response_model=ImportUrlResponse, status_code=status.HTTP_202_ACCEPTED)
 async def import_from_url(req: ImportUrlRequest, db: DbSession) -> ImportUrlResponse:
     """Queue a background download of a video/image from a URL into the asset library."""
-    submission = await _submit_import_url(db, req, force=req.force)
+    existing = None
+    if not req.force:
+        existing = await service.find_by_source_url(db, _normalize_import_url(req.url))
+    submission = await _submit_import_url(req, force=req.force, existing=existing)
     if submission.status == "rejected":
         raise HTTPException(status_code=422, detail=submission.reason or "Invalid URL")
     return ImportUrlResponse(
@@ -194,6 +198,12 @@ async def import_from_urls(req: ImportUrlsRequest, db: DbSession) -> ImportUrlsR
     items: list[ImportUrlSubmission] = []
     seen: set[str] = set()
 
+    # One dedup query for the whole batch instead of one per URL.
+    non_forced_urls = [
+        _normalize_import_url(item.url) for item in req.items if not (req.force or item.force)
+    ]
+    existing_by_url = await service.find_existing_by_source_urls(db, non_forced_urls)
+
     for item in req.items:
         url = _normalize_import_url(item.url)
         if url in seen:
@@ -207,7 +217,13 @@ async def import_from_urls(req: ImportUrlsRequest, db: DbSession) -> ImportUrlsR
             )
             continue
         seen.add(url)
-        items.append(await _submit_import_url(db, item, force=req.force or item.force))
+        items.append(
+            await _submit_import_url(
+                item,
+                force=req.force or item.force,
+                existing=existing_by_url.get(url),
+            )
+        )
 
     return ImportUrlsResponse(
         submitted=sum(1 for item in items if item.status == "queued"),
@@ -329,7 +345,6 @@ async def trigger_ai_tag(asset_id: int, db: DbSession, force: bool = False) -> A
 
     from sqlalchemy import update
 
-    from app.modules.asset.models import Asset
     if force:
         await db.execute(
             update(Asset).where(Asset.id == asset_id).values(ai_processing_status=0)
@@ -382,11 +397,17 @@ def _detect_platform_label(url: str) -> str:
 
 
 async def _submit_import_url(
-    db: AsyncSession,
     req: ImportUrlRequest,
     *,
     force: bool,
+    existing: Asset | None,
 ) -> ImportUrlSubmission:
+    """Build a submission result for one URL.
+
+    `existing` is the dedup lookup result, resolved by the caller — batch
+    endpoints fetch it for the whole request in one query instead of each
+    call running its own `find_by_source_url`.
+    """
     url = _normalize_import_url(req.url)
     platform = detect_import_platform(url, is_direct_file=_is_direct_import_url(url))
     if not _is_valid_import_url(url):
@@ -397,16 +418,14 @@ async def _submit_import_url(
             reason="invalid_url",
         )
 
-    if not force:
-        existing = await service.find_by_source_url(db, url)
-        if existing:
-            return ImportUrlSubmission(
-                url=url,
-                status="existing",
-                asset_id=existing.id,
-                platform=platform.label,
-                reason="source_url_exists",
-            )
+    if not force and existing:
+        return ImportUrlSubmission(
+            url=url,
+            status="existing",
+            asset_id=existing.id,
+            platform=platform.label,
+            reason="source_url_exists",
+        )
 
     task_id = await enqueue_task(
         "import_url",

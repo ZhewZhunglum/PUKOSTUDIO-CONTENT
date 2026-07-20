@@ -36,13 +36,14 @@ async def test_import_urls_batches_queued_existing_and_rejected(client: AsyncCli
     existing.name = "Existing"
     existing.asset_type = 2
 
-    async def find_existing(_db, url):
-        if "vimeo.com" in url:
-            return existing
-        return None
+    async def find_existing_map(_db, urls):
+        return {url: existing for url in urls if "vimeo.com" in url}
 
     with (
-        patch("app.modules.asset.router.service.find_by_source_url", side_effect=find_existing),
+        patch(
+            "app.modules.asset.router.service.find_existing_by_source_urls",
+            side_effect=find_existing_map,
+        ) as mock_find_existing,
         patch("app.modules.asset.router.enqueue_task", new_callable=AsyncMock, return_value=99),
     ):
         resp = await client.post(
@@ -68,6 +69,8 @@ async def test_import_urls_batches_queued_existing_and_rejected(client: AsyncCli
         "rejected",
         "rejected",
     ]
+    # One batched dedup query for the whole request, not one per URL.
+    mock_find_existing.assert_awaited_once()
 
 
 async def test_import_url_status_includes_error_code(client: AsyncClient):
