@@ -25,8 +25,13 @@ export function BulkActionBar({ selected, onClear, onDone }: BulkActionBarProps)
 
   async function bulkFavorite() {
     setLoading(true);
-    await Promise.allSettled(ids.map((id) => api.patch(`/api/assets/${id}`, { favorite: true })));
-    setLoading(false);
+    try {
+      await api.post("/api/assets/bulk-favorite", { asset_ids: ids, favorite: true });
+    } catch {
+      showToast("收藏失败，请重试");
+    } finally {
+      setLoading(false);
+    }
     onClear();
     onDone?.();
   }
@@ -52,10 +57,12 @@ export function BulkActionBar({ selected, onClear, onDone }: BulkActionBarProps)
   async function bulkDelete() {
     if (!confirm(`确认删除选中的 ${count} 个素材？`)) return;
     setLoading(true);
-    const results = await Promise.allSettled(ids.map((id) => api.delete(`/api/assets/${id}`)));
-    const failed = results.filter((r) => r.status === "rejected").length;
+    try {
+      await api.post("/api/assets/bulk-delete", { asset_ids: ids });
+    } catch {
+      alert("删除失败，请重试");
+    }
     setLoading(false);
-    if (failed > 0) alert(`${count - failed} 个成功，${failed} 个失败`);
     onClear();
     onDone?.();
   }
@@ -64,12 +71,13 @@ export function BulkActionBar({ selected, onClear, onDone }: BulkActionBarProps)
     const tag = tagInput.trim();
     if (!tag) return;
     setLoading(true);
-    await Promise.allSettled(
-      ids.map((id) =>
-        api.patch(`/api/assets/${id}`, { user_tags_add: [tag] })
-      )
-    );
-    setLoading(false);
+    try {
+      await api.post("/api/assets/bulk-tag", { asset_ids: ids, tag });
+    } catch {
+      showToast("打标签失败，请重试");
+    } finally {
+      setLoading(false);
+    }
     setTagInput("");
     setShowTagInput(false);
     onDone?.();
