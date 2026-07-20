@@ -97,6 +97,21 @@ async def find_by_source_url(db: AsyncSession, source_url: str) -> Asset | None:
     return result.scalar_one_or_none()
 
 
+async def find_existing_by_source_urls(
+    db: AsyncSession, source_urls: list[str]
+) -> dict[str, Asset]:
+    """Batch dedup lookup for URL imports — one query instead of one per URL."""
+    if not source_urls:
+        return {}
+    result = await db.execute(
+        select(Asset).where(
+            Asset.source_url.in_(source_urls),
+            Asset.is_deleted.is_(False),
+        )
+    )
+    return {asset.source_url: asset for asset in result.scalars().all() if asset.source_url}
+
+
 async def update_asset(db: AsyncSession, asset_id: int, data: AssetUpdate) -> Asset | None:
     asset = await get_asset(db, asset_id)
     if not asset:

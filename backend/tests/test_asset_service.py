@@ -1,9 +1,15 @@
-from unittest.mock import AsyncMock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from sqlalchemy.dialects import postgresql
 
 from app.modules.asset.schemas import AssetListRequest, AssetSearchRequest
-from app.modules.asset.service import _build_list_query, _build_search_query, _escape_like
+from app.modules.asset.service import (
+    _build_list_query,
+    _build_search_query,
+    _escape_like,
+    find_existing_by_source_urls,
+)
 
 
 def test_asset_list_search_covers_long_term_metadata_fields():
@@ -23,6 +29,31 @@ def test_asset_list_search_covers_long_term_metadata_fields():
 
 def test_asset_list_search_escapes_like_wildcards():
     assert _escape_like(r"100%_cotton\raw") == r"100\%\_cotton\\raw"
+
+
+async def test_find_existing_by_source_urls_maps_by_url_in_one_query():
+    asset_a = SimpleNamespace(id=1, source_url="https://vimeo.com/1")
+    asset_b = SimpleNamespace(id=2, source_url="https://vimeo.com/2")
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = [asset_a, asset_b]
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=result)
+
+    found = await find_existing_by_source_urls(
+        db, ["https://vimeo.com/1", "https://vimeo.com/2", "https://vimeo.com/3"]
+    )
+
+    assert found == {"https://vimeo.com/1": asset_a, "https://vimeo.com/2": asset_b}
+    db.execute.assert_awaited_once()
+
+
+async def test_find_existing_by_source_urls_skips_query_when_empty():
+    db = AsyncMock()
+
+    found = await find_existing_by_source_urls(db, [])
+
+    assert found == {}
+    db.execute.assert_not_awaited()
 
 
 def test_asset_structured_search_applies_filters_and_keyword_fields():
