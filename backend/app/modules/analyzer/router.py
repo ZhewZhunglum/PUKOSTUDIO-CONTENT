@@ -186,5 +186,6 @@ def _parse_json(raw: str) -> dict[str, Any]:
         raw = m.group(1)
     try:
         return json.loads(raw)
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to parse analyzer JSON: {} — raw output: {}", exc, raw[:500])
         return {}

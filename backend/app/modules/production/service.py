@@ -46,8 +46,21 @@ def _preview_url(asset: Asset | None) -> str | None:
         return None
 
 
+def _build_out(
+    prod: Production, asset: Asset | None, ads: list[AdPerformance]
+) -> ProductionOut:
+    """Pure assembly step — no I/O — shared by the single-row and batched paths."""
+    out = ProductionOut.model_validate(prod)
+    out.ad_performances = [AdPerformanceOut.model_validate(a) for a in ads]
+    out.asset_thumbnail_url = _thumbnail_url(asset)
+    out.asset_preview_url = _preview_url(asset)
+    out.asset_name = asset.name if asset else None
+    out.asset_duration_ms = asset.duration_ms if asset else None
+    return out
+
+
 async def _enrich(db: AsyncSession, prod: Production) -> ProductionOut:
-    """Attach asset metadata and ad performances to a production row."""
+    """Attach asset metadata and ad performances to a single production row."""
     asset_result = await db.execute(select(Asset).where(Asset.id == prod.asset_id))
     asset = asset_result.scalar_one_or_none()
 
@@ -56,15 +69,34 @@ async def _enrich(db: AsyncSession, prod: Production) -> ProductionOut:
         .where(AdPerformance.production_id == prod.id)
         .order_by(AdPerformance.date_start.desc().nulls_last())
     )
-    ads = [AdPerformanceOut.model_validate(a) for a in ad_result.scalars()]
+    return _build_out(prod, asset, list(ad_result.scalars()))
 
-    out = ProductionOut.model_validate(prod)
-    out.ad_performances = ads
-    out.asset_thumbnail_url = _thumbnail_url(asset)
-    out.asset_preview_url = _preview_url(asset)
-    out.asset_name = asset.name if asset else None
-    out.asset_duration_ms = asset.duration_ms if asset else None
-    return out
+
+async def _enrich_many(db: AsyncSession, prods: list[Production]) -> list[ProductionOut]:
+    """Batched version of `_enrich` — 2 queries total instead of 2 per row."""
+    if not prods:
+        return []
+
+    asset_ids = [p.asset_id for p in prods if p.asset_id]
+    assets_by_id: dict[int, Asset] = {}
+    if asset_ids:
+        asset_result = await db.execute(select(Asset).where(Asset.id.in_(asset_ids)))
+        assets_by_id = {a.id: a for a in asset_result.scalars()}
+
+    production_ids = [p.id for p in prods]
+    ads_by_production: dict[int, list[AdPerformance]] = {pid: [] for pid in production_ids}
+    ad_result = await db.execute(
+        select(AdPerformance)
+        .where(AdPerformance.production_id.in_(production_ids))
+        .order_by(AdPerformance.production_id, AdPerformance.date_start.desc().nulls_last())
+    )
+    for ad in ad_result.scalars():
+        ads_by_production.setdefault(ad.production_id, []).append(ad)
+
+    return [
+        _build_out(prod, assets_by_id.get(prod.asset_id), ads_by_production.get(prod.id, []))
+        for prod in prods
+    ]
 
 
 # ── Production CRUD ───────────────────────────────────────────────────────────
@@ -88,7 +120,7 @@ async def list_productions(
     result = await db.execute(q.offset(offset).limit(limit))
     prods = list(result.scalars())
 
-    items = [await _enrich(db, p) for p in prods]
+    items = await _enrich_many(db, prods)
     return ProductionListResponse(items=items, total=total)
 
 

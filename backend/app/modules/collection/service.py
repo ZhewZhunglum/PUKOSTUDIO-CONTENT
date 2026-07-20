@@ -1,4 +1,5 @@
 from sqlalchemy import delete, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.utils import utcnow
@@ -64,23 +65,22 @@ async def delete_collection(db: AsyncSession, col_id: int) -> bool:
 
 
 async def add_assets(db: AsyncSession, col_id: int, asset_ids: list[int]) -> int:
-    added = 0
-    for asset_id in asset_ids:
-        existing = await db.execute(
-            select(CollectionAsset).where(
-                CollectionAsset.collection_id == col_id,
-                CollectionAsset.asset_id == asset_id,
-            )
+    if not asset_ids:
+        return 0
+
+    now = utcnow()
+    result = await db.execute(
+        pg_insert(CollectionAsset)
+        .values(
+            [
+                {"collection_id": col_id, "asset_id": asset_id, "added_at": now}
+                for asset_id in asset_ids
+            ]
         )
-        if existing.scalar_one_or_none():
-            continue
-        ca = CollectionAsset(
-            collection_id=col_id,
-            asset_id=asset_id,
-            added_at=utcnow(),
-        )
-        db.add(ca)
-        added += 1
+        .on_conflict_do_nothing(index_elements=["collection_id", "asset_id"])
+        .returning(CollectionAsset.asset_id)
+    )
+    added = len(result.fetchall())
 
     if added:
         await db.execute(

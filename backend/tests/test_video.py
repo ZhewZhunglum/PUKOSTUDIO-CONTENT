@@ -289,3 +289,16 @@ def test_segments_to_srt_empty():
     from app.modules.video.router import _segments_to_srt
 
     assert _segments_to_srt([]) == ""
+
+
+@pytest.mark.asyncio
+async def test_save_transcription_writes_asr_fields_via_service() -> None:
+    """The ASR router previously ran this UPDATE inline (routers must not write SQL)."""
+    from app.modules.video import service
+
+    db = AsyncMock()
+    segments = [{"start": 0.0, "end": 1.0, "text": "Hi"}]
+
+    await service.save_transcription(db, asset_id=42, text="Hi", segments=segments)
+
+    db.execute.assert_awaited_once()
