@@ -310,6 +310,50 @@ async def bulk_ai_tag(req: BulkAITagRequest, db: DbSession) -> BulkAITagResponse
     return await service.bulk_ai_tag(db, req)
 
 
+class BulkFavoriteRequest(BaseModel):
+    asset_ids: list[int] = Field(..., min_length=1, max_length=500)
+    favorite: bool = True
+
+
+class BulkDeleteRequest(BaseModel):
+    asset_ids: list[int] = Field(..., min_length=1, max_length=500)
+
+
+class BulkTagRequest(BaseModel):
+    asset_ids: list[int] = Field(..., min_length=1, max_length=500)
+    tag: str = Field(..., min_length=1, max_length=64)
+
+
+class BulkActionResponse(BaseModel):
+    updated: int
+
+
+@router.post("/bulk-favorite", response_model=BulkActionResponse)
+async def bulk_favorite(req: BulkFavoriteRequest, db: DbSession) -> BulkActionResponse:
+    """Toggle favorite on many assets in one query — the library's multi-select toolbar."""
+    updated = await service.bulk_set_favorite(db, req.asset_ids, req.favorite)
+    await db.commit()
+    return BulkActionResponse(updated=updated)
+
+
+@router.post("/bulk-delete", response_model=BulkActionResponse)
+async def bulk_delete(req: BulkDeleteRequest, db: DbSession) -> BulkActionResponse:
+    """Soft-delete many assets in one query — the library's multi-select toolbar."""
+    updated = await service.bulk_soft_delete(db, req.asset_ids)
+    await db.commit()
+    return BulkActionResponse(updated=updated)
+
+
+@router.post("/bulk-tag", response_model=BulkActionResponse)
+async def bulk_tag(req: BulkTagRequest, db: DbSession) -> BulkActionResponse:
+    """Attach one tag to many assets in O(1) queries — the library's multi-select toolbar."""
+    from app.modules.tag import service as tag_service
+
+    await tag_service.bulk_add_tag_to_assets(db, req.asset_ids, req.tag, source=1)
+    await db.commit()
+    return BulkActionResponse(updated=len(req.asset_ids))
+
+
 # ── Single asset CRUD (dynamic paths — must follow all static paths) ───────────
 
 @router.get("/{asset_id}", response_model=AssetOut)

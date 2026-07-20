@@ -1,4 +1,4 @@
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -173,6 +173,49 @@ async def add_tags_to_asset(
     await db.flush()
     await _sync_asset_user_tags(db, asset_id)
     return tags
+
+
+async def bulk_add_tag_to_assets(
+    db: AsyncSession, asset_ids: list[int], tag_name: str, source: int
+) -> Tag:
+    """Link one tag to many assets in O(1) queries instead of one per asset.
+
+    Used by the asset library's bulk-tag action, which previously fired one
+    PATCH /assets/{id} per selected asset.
+    """
+    tag = await get_or_create_tag(db, tag_name)
+    if not asset_ids:
+        return tag
+
+    now = utcnow()
+    await db.execute(
+        pg_insert(AssetTag)
+        .values(
+            [
+                {"asset_id": asset_id, "tag_id": tag.id, "source": source, "created_at": now}
+                for asset_id in asset_ids
+            ]
+        )
+        .on_conflict_do_nothing(index_elements=["asset_id", "tag_id"])
+    )
+
+    count_result = await db.execute(select(func.count()).where(AssetTag.tag_id == tag.id))
+    tag.use_count = count_result.scalar() or 0
+
+    # One set-based UPDATE for the denormalized user_tags array across every
+    # asset — guarded so assets that already had the tag aren't touched.
+    await db.execute(
+        text(
+            "UPDATE asset SET user_tags = array_append(COALESCE(user_tags, '{}'), :tag_name), "
+            "updated_at = :updated_at "
+            "WHERE id = ANY(:asset_ids) AND is_deleted = false "
+            "AND NOT (:tag_name = ANY(COALESCE(user_tags, '{}')))"
+        ),
+        {"tag_name": tag.name, "asset_ids": asset_ids, "updated_at": now},
+    )
+    await db.flush()
+    await db.refresh(tag)
+    return tag
 
 
 async def remove_tag_from_asset(db: AsyncSession, asset_id: int, tag_id: int) -> bool:

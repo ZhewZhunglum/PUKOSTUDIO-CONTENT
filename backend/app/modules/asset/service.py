@@ -160,6 +160,30 @@ async def soft_delete_asset(db: AsyncSession, asset_id: int) -> bool:
     return True
 
 
+async def bulk_set_favorite(db: AsyncSession, asset_ids: list[int], favorite: bool) -> int:
+    """Set/unset favorite for many assets in one UPDATE instead of one PATCH per asset."""
+    if not asset_ids:
+        return 0
+    result = await db.execute(
+        update(Asset)
+        .where(Asset.id.in_(asset_ids), Asset.is_deleted.is_(False))
+        .values(favorite=favorite, updated_at=utcnow())
+    )
+    return result.rowcount or 0
+
+
+async def bulk_soft_delete(db: AsyncSession, asset_ids: list[int]) -> int:
+    """Soft-delete many assets in one UPDATE instead of one DELETE per asset."""
+    if not asset_ids:
+        return 0
+    result = await db.execute(
+        update(Asset)
+        .where(Asset.id.in_(asset_ids), Asset.is_deleted.is_(False))
+        .values(is_deleted=True, deleted_at=utcnow())
+    )
+    return result.rowcount or 0
+
+
 async def increment_use_count(db: AsyncSession, asset_id: int) -> None:
     await db.execute(
         update(Asset)
