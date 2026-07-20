@@ -252,6 +252,13 @@ async def merge_tags(
     affected_asset_ids: set[int] = set()
     merged_aliases = set(target.aliases or [])
 
+    # Assets already linked to target — checked in-memory per source row
+    # below instead of one SELECT per row (that was the N+1).
+    linked_result = await db.execute(
+        select(AssetTag.asset_id).where(AssetTag.tag_id == target.id)
+    )
+    target_linked_ids = set(linked_result.scalars().all())
+
     for source_id in source_ids:
         if source_id == target.id:
             continue
@@ -266,13 +273,9 @@ async def merge_tags(
         )
         for at in result.scalars().all():
             affected_asset_ids.add(at.asset_id)
-            existing = await db.execute(
-                select(AssetTag).where(
-                    AssetTag.asset_id == at.asset_id, AssetTag.tag_id == target.id
-                )
-            )
-            if not existing.scalar_one_or_none():
+            if at.asset_id not in target_linked_ids:
                 at.tag_id = target.id
+                target_linked_ids.add(at.asset_id)
             else:
                 await db.delete(at)
 

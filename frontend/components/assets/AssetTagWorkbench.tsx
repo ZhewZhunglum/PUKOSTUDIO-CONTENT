@@ -30,6 +30,10 @@ export function AssetTagWorkbench({ assetId, selectedTags, onAssetUpdated }: Ass
   const { data: tags = [], isLoading } = useQuery({
     queryKey: ["tags", "workbench"],
     queryFn: () => listTags({ limit: 500 }),
+    // Mutations below already invalidateQueries(["tags"]) on change, so a
+    // stale window here just avoids refetching all 500 tags on every asset
+    // detail page mount within that window.
+    staleTime: 30_000,
   });
 
   const { families, addFamily, renameFamily } = useTagFamilies(tags);

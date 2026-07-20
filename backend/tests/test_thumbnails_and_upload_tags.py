@@ -209,13 +209,16 @@ async def test_backfill_service_enqueues_each_missing_asset():
     db.execute = AsyncMock(side_effect=[count_result, ids_result])
 
     with patch(
-        "app.modules.asset.service.enqueue_task", new_callable=AsyncMock
+        "app.modules.asset.service.enqueue_tasks",
+        new_callable=AsyncMock,
+        return_value=[101, 102],
     ) as mock_enqueue:
         queued, remaining = await backfill_thumbnails(db)
 
     assert (queued, remaining) == (2, 0)
-    enqueued_ids = [call.args[1]["asset_id"] for call in mock_enqueue.await_args_list]
-    assert enqueued_ids == [11, 22]
+    mock_enqueue.assert_awaited_once_with(
+        "generate_thumbnail", [{"asset_id": 11}, {"asset_id": 22}], priority=3
+    )
 
 
 def test_downscale_composites_transparency_onto_white():
