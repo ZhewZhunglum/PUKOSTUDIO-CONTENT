@@ -8,6 +8,7 @@ x-logging: &default-logging
 services:
   postgres:
     logging: *default-logging
+    restart: unless-stopped
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: contentforge
@@ -25,6 +26,7 @@ services:
 
   redis:
     logging: *default-logging
+    restart: unless-stopped
     image: redis:7-alpine
     ports:
       - "127.0.0.1:6379:6379"
@@ -38,6 +40,7 @@ services:
 
   minio:
     logging: *default-logging
+    restart: unless-stopped
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
@@ -71,6 +74,7 @@ services:
 
   backend:
     logging: *default-logging
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -104,6 +108,7 @@ services:
 
   worker:
     logging: *default-logging
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -133,6 +138,7 @@ services:
 
   frontend:
     logging: *default-logging
+    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
